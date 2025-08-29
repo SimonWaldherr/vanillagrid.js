@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>VanillaGrid Demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="./vanillagrid.js"></script>
+  <link rel="stylesheet" href="./vanillagrid.css" />
+</head>
+<body style="padding:24px;background:#f5f7fb;">
+  <h1 style="font-family:system-ui;margin:0 0 16px 0;">VanillaGrid Demo</h1>
+  <p style="color:#6b7280;margin:0 0 12px 0;">Sort, filter, paginate, group, export, tree view, remote data, and Markdown ingestion.</p>
+  <div style="display:flex; gap:8px; align-items:center; margin-bottom:20px;">
+    <button id="btn-theme" style="padding:6px 10px; border:1px solid #e5e7eb; border-radius:8px; background:#fff; cursor:pointer;">Toggle Theme</button>
+    <button id="btn-density" style="padding:6px 10px; border:1px solid #e5e7eb; border-radius:8px; background:#fff; cursor:pointer;">Toggle Density</button>
+  </div>
+
+  <h2 style="font-family:system-ui;margin:24px 0 8px;">Basic Grid</h2>
+  <div id="grid"></div>
+
+  <h2 style="font-family:system-ui;margin:24px 0 8px;">Tree (Hierarchical) Grid</h2>
+  <div id="tree-grid"></div>
+
+  <h2 style="font-family:system-ui;margin:24px 0 8px;">Remote (Server-side) Grid</h2>
+  <div id="remote-grid"></div>
+
+  <h2 style="font-family:system-ui;margin:24px 0 8px;">Selection + Columns Menu</h2>
+  <p style="color:#6b7280;margin:0 0 8px 0;">Try the checkboxes to select rows and toggle columns via the Columns menu in the toolbar.</p>
+  <div id="select-grid"></div>
+  <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+    <span id="sel-count" style="color:#6b7280;">Selected: 0</span>
+    <button id="btn-clear-sel" style="padding:4px 8px; border:1px solid #e5e7eb; border-radius:6px; background:#fff; cursor:pointer;">Clear Selection</button>
+  </div>
+
+  <h2 style="font-family:system-ui;margin:24px 0 8px;">Markdown → Grid</h2>
+  <p style="color:#6b7280;margin:0 0 8px 0;">Edit the Markdown table; the grid below updates live. Or load from file:
+    <button id="btn-load-md" style="padding:4px 8px; border:1px solid #e5e7eb; border-radius:6px; background:#fff; cursor:pointer;">Load sample.md</button>
+  </p>
+  <textarea id="md-src" style="width:100%;height:160px;">| Name | Price | Link |
+| --- | ---:| --- |
+| **Latte** | 3.40 | [site](https://example.com/latte) |
+| Croissant | 2.90 | [site](https://example.com/croissant) |
+| Brownie | 3.10 | [site](https://example.com/brownie) |
+  </textarea>
+  <div id="md-grid" style="margin-top:12px;"></div>
+
+  <h2 style="font-family:system-ui;margin:24px 0 8px;">Warehouse WMS: Stock Overview (All Features)</h2>
+  <p style="color:#6b7280;margin:0 0 8px 0;">This demo combines tree hierarchy (Warehouse → Aisle → Bin → SKU), client grouping, export, sorting, filtering (text/regex), aggregates, buttons, and badges.</p>
+  <div id="wms-grid"></div>
+
+  <script>
+    // Theme / Density toggles
+    const applyThemeDensity = () => {
+      document.body.classList.toggle('vg-theme-dark', window.__vgDark === true);
+      document.body.classList.toggle('vg-compact', window.__vgCompact === true);
+    };
+    window.__vgDark = false;
+    window.__vgCompact = false;
+    applyThemeDensity();
+    document.getElementById('btn-theme').onclick = () => { window.__vgDark = !window.__vgDark; applyThemeDensity(); };
+    document.getElementById('btn-density').onclick = () => { window.__vgCompact = !window.__vgCompact; applyThemeDensity(); };
+
+    // Sample data mixing text, numbers, html, images, links, and buttons
+    const products = [
+      { id: 1, name: 'Caffè Mocha',  price: 3.75,  category: 'Drinks',   img: 'https://picsum.photos/seed/mocha/60/40',  url: 'https://example.com/mocha',  stock: 42, desc: '<b>Chocolate</b> meets coffee' },
+      { id: 2, name: 'Espresso',     price: 2.10,  category: 'Drinks',   img: 'https://picsum.photos/seed/espresso/60/40', url: 'https://example.com/espresso', stock: 90, desc: 'Strong &amp; bold' },
+      { id: 3, name: 'Cheese Cake',  price: 4.95,  category: 'Dessert',  img: 'https://picsum.photos/seed/cheese/60/40',   url: 'https://example.com/cheese', stock: 15, desc: 'Rich &amp; creamy' },
+      { id: 4, name: 'Blueberry Pie',price: 5.25,  category: 'Dessert',  img: 'https://picsum.photos/seed/pie/60/40',      url: 'https://example.com/pie',    stock: 7,  desc: '<i>Seasonal</i> favorite' },
+      { id: 5, name: 'Club Sandwich',price: 6.80,  category: 'Food',     img: 'https://picsum.photos/seed/sandwich/60/40', url: 'https://example.com/sand',   stock: 22, desc: 'Toasted triple-decker' },
+      { id: 6, name: 'Latte',        price: 3.40,  category: 'Drinks',   img: 'https://picsum.photos/seed/latte/60/40',    url: 'https://example.com/latte',  stock: 51, desc: 'Milky smooth' },
+      { id: 7, name: 'Bagel',        price: 2.35,  category: 'Food',     img: 'https://picsum.photos/seed/bagel/60/40',    url: 'https://example.com/bagel',  stock: 33, desc: 'With cream cheese' },
+      { id: 8, name: 'Brownie',      price: 3.10,  category: 'Dessert',  img: 'https://picsum.photos/seed/brownie/60/40',  url: 'https://example.com/brownie',stock: 10, desc: 'Fudgy goodness' },
+      { id: 9, name: 'Iced Tea',     price: 2.60,  category: 'Drinks',   img: 'https://picsum.photos/seed/iced/60/40',     url: 'https://example.com/tea',    stock: 28, desc: 'Lemon wedge' },
+      { id:10, name: 'Croissant',    price: 2.90,  category: 'Food',     img: 'https://picsum.photos/seed/croissant/60/40',url: 'https://example.com/crois',  stock: 18, desc: 'Buttery layers' }
+    ];
+
+    const currency = v => (typeof v === 'number')
+      ? v.toLocaleString(undefined, { style:'currency', currency:'USD' })
+      : '';
+
+  const grid = new VanillaGrid('#grid', {
+      data: products,
+      pageSize: 5,
+      columns: [
+        { key: 'img', label: '', type: 'image', image: { alt:'product', width:60, height:40 }, sortable: false, filterable: false },
+        { key: 'name', label: 'Name', type: 'text', sortable: true },
+        { key: 'category', label: 'Category', type: 'text', sortable: true },
+        { key: 'price', label: 'Price', type: 'number', sortable: true, format: currency, aggregations: ['sum','min','max'] },
+        { key: 'stock', label: 'In Stock', type: 'number', sortable: true, aggregations: ['sum','min','max'] },
+        { key: 'url', label: 'Link', type: 'link', link: { text: 'Open' }, sortable: false, filterable: false },
+        { key: 'desc', label: 'Description', type: 'html', sortable: false },
+        { key: 'action', label: '', type: 'button', button: {
+            text: 'Add',
+            onClick: (row) => alert(`Added: ${row.name}`)
+        }, sortable: false, filterable: false },
+      ],
+      groupBy: null, // try 'category' to start grouped
+    });
+
+    // Expose for console tinkering
+    window.grid = grid;
+
+    // Tree demo data
+    const categories = [
+      { id: 'drinks', name: 'Drinks', hasChildren: true },
+      { id: 'food', name: 'Food', hasChildren: true },
+      { id: 'dessert', name: 'Dessert', hasChildren: true },
+    ];
+
+    const treeGrid = new VanillaGrid('#tree-grid', {
+      data: categories,
+      pageSize: 100,
+      columns: [
+        { key: 'name', label: 'Name', sortable: true },
+        { key: 'id', label: 'ID', sortable: true },
+      ],
+      tree: { enabled: true, lazy: true, initiallyExpanded: false },
+      loadChildren: async (row) => {
+        // fake async: filter products by category id
+        await new Promise(r => setTimeout(r, 400));
+        const list = products.filter(p => p.category.toLowerCase() === row.id);
+        return list.map(p => ({ id: p.id, name: p.name }));
+      }
+    });
+    window.treeGrid = treeGrid;
+
+    // Remote pagination demo (fake server)
+    const serverData = Array.from({ length: 237 }, (_, i) => ({ id: i+1, name: `Row ${i+1}`, category: i % 2 ? 'A' : 'B' }));
+    const simulateServer = async ({ page, pageSize, sortKey, sortDir, filter }) => {
+      await new Promise(r => setTimeout(r, 250));
+      let rows = serverData.slice();
+      if (filter) rows = rows.filter(r => Object.values(r).some(v => String(v).toLowerCase().includes(filter.toLowerCase())));
+      if (sortKey) {
+        const dir = sortDir === 'desc' ? -1 : 1;
+        rows.sort((a,b) => dir * String(a[sortKey] ?? '').localeCompare(String(b[sortKey] ?? ''), undefined, { numeric: true }));
+      }
+      const total = rows.length;
+      const start = (page - 1) * pageSize;
+      rows = rows.slice(start, start + pageSize);
+      return { rows, total };
+    };
+
+    const remoteGrid = new VanillaGrid('#remote-grid', {
+      data: [],
+      pageSize: 10,
+      columns: [
+        { key: 'id', label: 'ID', type: 'number', sortable: true },
+        { key: 'name', label: 'Name', sortable: true },
+        { key: 'category', label: 'Category', sortable: true },
+      ],
+      serverPagination: true,
+      serverSorting: true,
+      serverFiltering: true,
+      loadPage: simulateServer,
+    });
+    window.remoteGrid = remoteGrid;
+
+    // Selection + Columns demo
+    const selectGrid = new VanillaGrid('#select-grid', {
+      data: products,
+      pageSize: 5,
+      selectable: true,
+      columnsMenu: true,
+      onSelectionChange: (rows) => {
+        document.getElementById('sel-count').textContent = `Selected: ${rows.length}`;
+      },
+      columns: [
+        { key: 'name', label: 'Name', sortable: true },
+        { key: 'category', label: 'Category', sortable: true },
+        { key: 'price', label: 'Price', type: 'number', sortable: true, format: currency },
+        { key: 'stock', label: 'In Stock', type: 'number', sortable: true },
+      ],
+    });
+    document.getElementById('btn-clear-sel').onclick = () => selectGrid.clearSelection();
+    window.selectGrid = selectGrid;
+
+  // Markdown loader demo
+  const mdGrid = new VanillaGrid('#md-grid', { data: [], columns: [], pageSize: 10 });
+  const ta = document.getElementById('md-src');
+  mdGrid.setMarkdown(ta.value);
+  ta.addEventListener('input', () => mdGrid.setMarkdown(ta.value));
+  document.getElementById('btn-load-md').onclick = async () => {
+    const res = await fetch('./sample.md');
+    const text = await res.text();
+    ta.value = text;
+    mdGrid.setMarkdown(text);
+  };
+
+  // WMS demo data
+  const skus = [
+    { sku: 'SKU-1001', name: 'Widget A', unit: 'pcs' },
+    { sku: 'SKU-1002', name: 'Widget B', unit: 'pcs' },
+    { sku: 'SKU-2001', name: 'Gadget X', unit: 'box' },
+    { sku: 'SKU-3001', name: 'Cable C', unit: 'm' },
+  ];
+  const warehouses = [
+    { id: 'WH-01', name: 'North DC', hasChildren: true },
+    { id: 'WH-02', name: 'South DC', hasChildren: true },
+  ];
+  const aislesByWh = {
+    'WH-01': ['A', 'B'],
+    'WH-02': ['C']
+  };
+  const binsByAisle = {
+    'WH-01:A': ['A-01', 'A-02'],
+    'WH-01:B': ['B-03'],
+    'WH-02:C': ['C-01', 'C-02']
+  };
+  function randomQty(min, max) { return Math.floor(Math.random()*(max-min+1))+min; }
+  function stockRowsFor(binKey) {
+    return skus.map(s => ({
+      sku: s.sku,
+      name: s.name,
+      unit: s.unit,
+      qty: randomQty(0, 120),
+      reorderPoint: 30,
+      price: +(Math.random()*50+5).toFixed(2),
+      bin: binKey,
+      lastRecv: new Date(Date.now() - Math.random()*30*864e5).toISOString().slice(0,10),
+      link: 'https://example.com/items/'+encodeURIComponent(s.sku)
+    }));
+  }
+  function statusBadge(qty, rp) {
+    const cls = qty === 0 ? 'out' : (qty < rp ? 'low' : 'ok');
+    const label = qty === 0 ? 'Out of stock' : (qty < rp ? 'Low' : 'OK');
+    return `<span class="vg-badge ${cls}">${label}</span>`;
+  }
+
+  const wmsGrid = new VanillaGrid('#wms-grid', {
+    data: warehouses,
+    pageSize: 25,
+    regexFilter: true,
+    columns: [
+      { key: 'name', label: 'Name', sortable: true },
+      { key: 'id', label: 'ID', sortable: true },
+      { key: 'bin', label: 'Bin', sortable: true },
+      { key: 'sku', label: 'SKU', sortable: true },
+      { key: 'nameSku', label: 'Item', sortable: false, render: (v, row) => row.name || row.nameSku || '' },
+      { key: 'qty', label: 'Qty', type: 'number', sortable: true, aggregations: ['sum','min','max'] },
+      { key: 'reorderPoint', label: 'Reorder PT', type: 'number', sortable: true },
+      { key: 'status', label: 'Status', type: 'html', sortable: false, render: (v, row) => statusBadge(row.qty, row.reorderPoint) },
+      { key: 'price', label: 'Price', type: 'number', sortable: true, format: currency },
+      { key: 'lastRecv', label: 'Last Inbound', sortable: true },
+      { key: 'link', label: 'Item', type: 'link', link: { text: 'Open' }, sortable: false, filterable: false },
+      { key: 'action', label: '', type: 'button', button: {
+          text: 'Replenish',
+          onClick: (row) => { if (typeof row.qty === 'number') { row.qty += 25; row.lastRecv = new Date().toISOString().slice(0,10); wmsGrid._renderBody(); } }
+        }, sortable: false, filterable: false },
+    ],
+    groupBy: null,
+    tree: { enabled: true, lazy: true, initiallyExpanded: true },
+    loadChildren: async (node) => {
+      // Lazy-load hierarchy: warehouse → aisles → bins → SKUs
+      await new Promise(r => setTimeout(r, 150));
+      if (node.id && !node.aisle) {
+        const aisles = (aislesByWh[node.id] || []).map(a => ({ id: node.id+':'+a, name: `Aisle ${a}`, aisle: a, hasChildren: true }));
+        return aisles;
+      }
+      if (node.aisle && !node.binOnly) {
+        const bins = (binsByAisle[`${node.id}`] || []).map(b => ({ id: `${node.id}/${b}`, name: `Bin ${b}`, binOnly: true, hasChildren: true }));
+        return bins;
+      }
+      if (node.binOnly) {
+        const rows = stockRowsFor(node.id).map(r => ({ ...r, nameSku: r.name }));
+        rows.forEach(r => r.bin = node.id); // ensure bin column is filled
+        return rows;
+      }
+      return [];
+    },
+    exporting: { enabled: true, formats: ['csv','md'], scope: 'page', filename: 'wms-stock' },
+  });
+  window.wmsGrid = wmsGrid;
+  </script>
+</body>
+</html>
