@@ -57,14 +57,38 @@
   </div>
   <div id="enhanced-grid"></div>
 
-  <h2 style="font-family:system-ui;margin:24px 0 8px;">📊 Pivot Table Demo</h2>
-  <p style="color:#6b7280;margin:0 0 8px 0;">Analyze e-commerce data across multiple dimensions. Compare performance by category, region, channel, and time period with meaningful business metrics.</p>
+  <h2 style="font-family:system-ui;margin:24px 0 8px;">📊 Advanced Pivot Table Builder</h2>
+  <p style="color:#6b7280;margin:0 0 8px 0;">Experience our powerful Excel-like pivot table builder with intuitive drag-and-drop interface, advanced filtering, and comprehensive export capabilities. Analyze e-commerce data across multiple dimensions with meaningful business insights.</p>
   <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap;">
-    <button id="btn-enable-pivot" style="padding:6px 10px; border:1px solid #e5e7eb; border-radius:8px; background:#fff; cursor:pointer;">Enable Pivot Mode</button>
-    <button id="btn-sample-pivot" style="padding:6px 10px; border:1px solid #e5e7eb; border-radius:8px; background:#fff; cursor:pointer;">Category Performance</button>
-    <button id="btn-regional-pivot" style="padding:6px 10px; border:1px solid #e5e7eb; border-radius:8px; background:#fff; cursor:pointer;">Regional Analysis</button>
-    <button id="btn-channel-pivot" style="padding:6px 10px; border:1px solid #e5e7eb; border-radius:8px; background:#fff; cursor:pointer;">Channel Comparison</button>
-    <button id="btn-brand-pivot" style="padding:6px 10px; border:1px solid #e5e7eb; border-radius:8px; background:#fff; cursor:pointer;">Brand Performance</button>
+    <button id="btn-enable-pivot" style="padding:8px 12px; border:1px solid #3b82f6; border-radius:8px; background:#3b82f6; color:white; cursor:pointer; font-weight:500;">🎯 Enable Pivot Mode</button>
+    <button id="btn-sample-pivot" style="padding:6px 10px; border:1px solid #e5e7eb; border-radius:8px; background:#fff; cursor:pointer;">💰 Revenue Analysis</button>
+    <button id="btn-regional-pivot" style="padding:6px 10px; border:1px solid #e5e7eb; border-radius:8px; background:#fff; cursor:pointer;">📍 Regional Performance</button>
+    <button id="btn-channel-pivot" style="padding:6px 10px; border:1px solid #e5e7eb; border-radius:8px; background:#fff; cursor:pointer;">🛒 Channel Analysis</button>
+    <button id="btn-brand-pivot" style="padding:6px 10px; border:1px solid #e5e7eb; border-radius:8px; background:#fff; cursor:pointer;">🏷️ Brand Comparison</button>
+    <button id="btn-quarterly-pivot" style="padding:6px 10px; border:1px solid #e5e7eb; border-radius:8px; background:#fff; cursor:pointer;">📅 Quarterly Trends</button>
+  </div>
+  
+  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; margin-bottom:16px; padding:16px; background:#f8f9fa; border-radius:8px;">
+    <div style="text-align:center;">
+      <div style="font-size:24px; margin-bottom:4px;">🎯</div>
+      <div style="font-weight:600; margin-bottom:2px;">Drag & Drop Builder</div>
+      <div style="font-size:12px; color:#6b7280;">Intuitive field management</div>
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:24px; margin-bottom:4px;">🔍</div>
+      <div style="font-weight:600; margin-bottom:2px;">Advanced Filtering</div>
+      <div style="font-size:12px; color:#6b7280;">Real-time data filtering</div>
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:24px; margin-bottom:4px;">📊</div>
+      <div style="font-weight:600; margin-bottom:2px;">Smart Aggregations</div>
+      <div style="font-size:12px; color:#6b7280;">Multiple calculation types</div>
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:24px; margin-bottom:4px;">💾</div>
+      <div style="font-weight:600; margin-bottom:2px;">Export Ready</div>
+      <div style="font-size:12px; color:#6b7280;">One-click CSV export</div>
+    </div>
   </div>
   <div id="pivot-grid"></div>
 
@@ -481,6 +505,19 @@
         revenue: 'sum',
         cost: 'sum',
         units: 'sum'
+      }
+    });
+  };
+
+  document.getElementById('btn-quarterly-pivot').onclick = () => {
+    pivotGrid.enablePivot({
+      rows: ['quarter'],
+      columns: ['category', 'channel'],
+      values: ['revenue', 'units', 'returns'],
+      aggregations: {
+        revenue: 'sum',
+        units: 'sum',
+        returns: 'sum'
       }
     });
   };

@@ -2020,82 +2020,267 @@
       const pivotControls = document.createElement('div');
       pivotControls.className = 'vg-pivot-controls';
       pivotControls.innerHTML = `
-        <div class="vg-pivot-section">
-          <h4>Pivot Table Configuration</h4>
-          <button class="vg-btn vg-pivot-exit">Exit Pivot Mode</button>
+        <div class="vg-pivot-header">
+          <div class="vg-pivot-title">
+            <h3>📊 Pivot Table Builder</h3>
+            <p>Drag fields into the areas below to build your pivot table</p>
+          </div>
+          <button class="vg-btn vg-pivot-exit">✕ Exit Pivot Mode</button>
         </div>
-        <div class="vg-pivot-fields">
-          <div class="vg-pivot-field-section">
-            <label>Row Fields:</label>
-            <div class="vg-pivot-field-list" data-type="rows"></div>
-            <select class="vg-pivot-field-select" data-type="rows">
-              <option value="">Add row field...</option>
-            </select>
+        
+        <div class="vg-pivot-workspace">
+          <div class="vg-pivot-fields-panel">
+            <h4>Available Fields</h4>
+            <div class="vg-pivot-available-fields" id="pivot-available-fields"></div>
           </div>
-          <div class="vg-pivot-field-section">
-            <label>Column Fields:</label>
-            <div class="vg-pivot-field-list" data-type="columns"></div>
-            <select class="vg-pivot-field-select" data-type="columns">
-              <option value="">Add column field...</option>
-            </select>
-          </div>
-          <div class="vg-pivot-field-section">
-            <label>Value Fields:</label>
-            <div class="vg-pivot-field-list" data-type="values"></div>
-            <select class="vg-pivot-field-select" data-type="values">
-              <option value="">Add value field...</option>
-            </select>
+          
+          <div class="vg-pivot-config-panel">
+            <div class="vg-pivot-drop-zones">
+              <div class="vg-pivot-zone vg-pivot-filters">
+                <div class="vg-pivot-zone-header">
+                  <span class="vg-pivot-zone-icon">🔍</span>
+                  <span class="vg-pivot-zone-title">Filters</span>
+                  <span class="vg-pivot-zone-hint">Filter your data</span>
+                </div>
+                <div class="vg-pivot-field-list" data-type="filters"></div>
+              </div>
+              
+              <div class="vg-pivot-zone vg-pivot-rows">
+                <div class="vg-pivot-zone-header">
+                  <span class="vg-pivot-zone-icon">📋</span>
+                  <span class="vg-pivot-zone-title">Rows</span>
+                  <span class="vg-pivot-zone-hint">Drag row fields here</span>
+                </div>
+                <div class="vg-pivot-field-list" data-type="rows"></div>
+              </div>
+              
+              <div class="vg-pivot-zone vg-pivot-columns">
+                <div class="vg-pivot-zone-header">
+                  <span class="vg-pivot-zone-icon">📊</span>
+                  <span class="vg-pivot-zone-title">Columns</span>
+                  <span class="vg-pivot-zone-hint">Drag column fields here</span>
+                </div>
+                <div class="vg-pivot-field-list" data-type="columns"></div>
+              </div>
+              
+              <div class="vg-pivot-zone vg-pivot-values">
+                <div class="vg-pivot-zone-header">
+                  <span class="vg-pivot-zone-icon">🔢</span>
+                  <span class="vg-pivot-zone-title">Values</span>
+                  <span class="vg-pivot-zone-hint">Drag numeric fields here</span>
+                </div>
+                <div class="vg-pivot-field-list" data-type="values"></div>
+              </div>
+            </div>
+            
+            <div class="vg-pivot-actions">
+              <button class="vg-btn vg-pivot-refresh">🔄 Refresh Pivot</button>
+              <button class="vg-btn vg-pivot-clear">🗑️ Clear All</button>
+              <button class="vg-btn vg-pivot-export">📊 Export Data</button>
+            </div>
           </div>
         </div>
       `;
       
       toolbar.appendChild(pivotControls);
       
-      // Populate field options
-      const fields = this.getAvailableFields();
-      toolbar.querySelectorAll('.vg-pivot-field-select').forEach(select => {
-        fields.forEach(field => {
-          const option = document.createElement('option');
-          option.value = field;
-          option.textContent = this._getFieldLabel(field);
-          select.appendChild(option);
-        });
-      });
+      // Populate available fields
+      this._renderAvailableFields();
       
       // Render current configuration
       this._updatePivotFieldLists();
       
       // Bind events
       this._bindPivotEvents();
+      
+      // Initialize drag and drop
+      this._initializePivotDragDrop();
+    }
+    
+    _renderAvailableFields() {
+      const fieldsContainer = this.root.querySelector('#pivot-available-fields');
+      if (!fieldsContainer) return;
+      
+      fieldsContainer.innerHTML = '';
+      const fields = this.getAvailableFields();
+      
+      fields.forEach(field => {
+        const fieldElement = document.createElement('div');
+        fieldElement.className = 'vg-pivot-field-chip';
+        fieldElement.draggable = true;
+        fieldElement.dataset.field = field;
+        
+        const fieldType = this._getFieldType(field);
+        const icon = fieldType === 'number' ? '🔢' : fieldType === 'date' ? '📅' : '📝';
+        
+        fieldElement.innerHTML = `
+          <span class="vg-field-icon">${icon}</span>
+          <span class="vg-field-label">${this._getFieldLabel(field)}</span>
+          <span class="vg-field-type">${fieldType}</span>
+        `;
+        
+        fieldsContainer.appendChild(fieldElement);
+      });
+    }
+    
+    _getFieldType(field) {
+      const originalData = this.state.originalData || this.data;
+      if (!originalData.length) return 'text';
+      
+      const sample = originalData[0][field];
+      if (typeof sample === 'number') return 'number';
+      if (sample instanceof Date || /^\d{4}-\d{2}-\d{2}/.test(sample)) return 'date';
+      return 'text';
+    }
+    
+    _initializePivotDragDrop() {
+      const fieldsContainer = this.root.querySelector('#pivot-available-fields');
+      const dropZones = this.root.querySelectorAll('.vg-pivot-field-list');
+      
+      // Make field chips draggable
+      fieldsContainer.addEventListener('dragstart', (e) => {
+        if (e.target.classList.contains('vg-pivot-field-chip')) {
+          e.dataTransfer.setData('text/plain', e.target.dataset.field);
+          e.target.classList.add('vg-dragging');
+        }
+      });
+      
+      fieldsContainer.addEventListener('dragend', (e) => {
+        e.target.classList.remove('vg-dragging');
+      });
+      
+      // Setup drop zones
+      dropZones.forEach(zone => {
+        zone.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          zone.classList.add('vg-drop-active');
+        });
+        
+        zone.addEventListener('dragleave', (e) => {
+          if (!zone.contains(e.relatedTarget)) {
+            zone.classList.remove('vg-drop-active');
+          }
+        });
+        
+        zone.addEventListener('drop', (e) => {
+          e.preventDefault();
+          zone.classList.remove('vg-drop-active');
+          
+          const field = e.dataTransfer.getData('text/plain');
+          const type = zone.dataset.type;
+          
+          if (field && type && !this.opts.pivotConfig[type].includes(field)) {
+            this.opts.pivotConfig[type].push(field);
+            
+            if (type === 'values' && !this.opts.pivotConfig.aggregations[field]) {
+              this.opts.pivotConfig.aggregations[field] = 'sum';
+            }
+            
+            this.updatePivotConfig(this.opts.pivotConfig);
+          }
+        });
+      });
+      
+      // Make existing field items draggable within zones
+      this._makeFieldItemsDraggable();
+    }
+    
+    _makeFieldItemsDraggable() {
+      const fieldItems = this.root.querySelectorAll('.vg-pivot-field-item');
+      
+      fieldItems.forEach(item => {
+        item.draggable = true;
+        
+        item.addEventListener('dragstart', (e) => {
+          e.dataTransfer.setData('text/plain', item.dataset.field);
+          e.dataTransfer.setData('source-type', item.closest('.vg-pivot-field-list').dataset.type);
+          item.classList.add('vg-dragging');
+        });
+        
+        item.addEventListener('dragend', (e) => {
+          item.classList.remove('vg-dragging');
+        });
+      });
     }
     
     _updatePivotFieldLists() {
-      const config = this.opts.pivotConfig;
+      const fieldLists = this.root.querySelectorAll('.vg-pivot-field-list');
       
-      ['rows', 'columns', 'values'].forEach(type => {
-        const list = this.root.querySelector(`.vg-pivot-field-list[data-type="${type}"]`);
-        if (!list) return;
+      fieldLists.forEach(list => {
+        const type = list.dataset.type;
+        const fields = this.opts.pivotConfig[type] || [];
         
         list.innerHTML = '';
-        config[type].forEach(field => {
+        
+        fields.forEach((field, index) => {
           const fieldItem = document.createElement('div');
           fieldItem.className = 'vg-pivot-field-item';
-          fieldItem.innerHTML = `
-            <span>${this._getFieldLabel(field)}</span>
-            ${type === 'values' ? `
-              <select class="vg-pivot-agg-select" data-field="${field}">
-                <option value="sum" ${(config.aggregations[field] || 'sum') === 'sum' ? 'selected' : ''}>Sum</option>
-                <option value="avg" ${config.aggregations[field] === 'avg' ? 'selected' : ''}>Average</option>
-                <option value="min" ${config.aggregations[field] === 'min' ? 'selected' : ''}>Min</option>
-                <option value="max" ${config.aggregations[field] === 'max' ? 'selected' : ''}>Max</option>
-                <option value="count" ${config.aggregations[field] === 'count' ? 'selected' : ''}>Count</option>
-              </select>
-            ` : ''}
-            <button class="vg-pivot-remove-field" data-type="${type}" data-field="${field}">×</button>
-          `;
+          fieldItem.dataset.field = field;
+          fieldItem.draggable = true;
+          
+          const fieldType = this._getFieldType(field);
+          const icon = fieldType === 'number' ? '🔢' : fieldType === 'date' ? '📅' : '📝';
+          
+          if (type === 'values') {
+            const aggregation = this.opts.pivotConfig.aggregations[field] || 'sum';
+            fieldItem.innerHTML = `
+              <div class="vg-field-item-content">
+                <span class="vg-field-icon">${icon}</span>
+                <span class="vg-field-label">${this._getFieldLabel(field)}</span>
+                <select class="vg-aggregation-select" data-field="${field}">
+                  <option value="sum" ${aggregation === 'sum' ? 'selected' : ''}>Sum</option>
+                  <option value="count" ${aggregation === 'count' ? 'selected' : ''}>Count</option>
+                  <option value="avg" ${aggregation === 'avg' ? 'selected' : ''}>Average</option>
+                  <option value="min" ${aggregation === 'min' ? 'selected' : ''}>Min</option>
+                  <option value="max" ${aggregation === 'max' ? 'selected' : ''}>Max</option>
+                </select>
+              </div>
+              <div class="vg-field-actions">
+                <button class="vg-field-move-up" data-field="${field}" data-type="${type}" ${index === 0 ? 'disabled' : ''}>↑</button>
+                <button class="vg-field-move-down" data-field="${field}" data-type="${type}" ${index === fields.length - 1 ? 'disabled' : ''}>↓</button>
+                <button class="vg-field-remove" data-field="${field}" data-type="${type}">✕</button>
+              </div>
+            `;
+          } else {
+            fieldItem.innerHTML = `
+              <div class="vg-field-item-content">
+                <span class="vg-field-icon">${icon}</span>
+                <span class="vg-field-label">${this._getFieldLabel(field)}</span>
+                ${type === 'filters' ? `
+                  <select class="vg-filter-operator" data-field="${field}">
+                    <option value="equals">Equals</option>
+                    <option value="contains">Contains</option>
+                    <option value="starts">Starts with</option>
+                    <option value="greater">Greater than</option>
+                    <option value="less">Less than</option>
+                  </select>
+                  <input type="text" class="vg-filter-value" data-field="${field}" placeholder="Filter value...">
+                ` : ''}
+              </div>
+              <div class="vg-field-actions">
+                <button class="vg-field-move-up" data-field="${field}" data-type="${type}" ${index === 0 ? 'disabled' : ''}>↑</button>
+                <button class="vg-field-move-down" data-field="${field}" data-type="${type}" ${index === fields.length - 1 ? 'disabled' : ''}>↓</button>
+                <button class="vg-field-remove" data-field="${field}" data-type="${type}">✕</button>
+              </div>
+            `;
+          }
+          
           list.appendChild(fieldItem);
         });
+        
+        if (fields.length === 0) {
+          const emptyState = document.createElement('div');
+          emptyState.className = 'vg-pivot-empty-state';
+          emptyState.innerHTML = `
+            <div class="vg-empty-icon">📥</div>
+            <div class="vg-empty-text">Drag fields here</div>
+          `;
+          list.appendChild(emptyState);
+        }
       });
+      
+      // Rebind drag and drop events for new items
+      this._makeFieldItemsDraggable();
     }
     
     _bindPivotEvents() {
@@ -2107,55 +2292,154 @@
         this.disablePivot();
       });
       
-      // Add fields
-      toolbar.querySelectorAll('.vg-pivot-field-select').forEach(select => {
-        select.addEventListener('change', (e) => {
-          if (!e.target.value) return;
-          
-          const type = e.target.dataset.type;
-          const field = e.target.value;
-          
-          if (!this.opts.pivotConfig[type].includes(field)) {
-            this.opts.pivotConfig[type].push(field);
-            
-            if (type === 'values' && !this.opts.pivotConfig.aggregations[field]) {
-              this.opts.pivotConfig.aggregations[field] = 'sum';
-            }
-            
-            this.updatePivotConfig(this.opts.pivotConfig);
-          }
-          
-          e.target.value = '';
-        });
+      // Refresh pivot
+      toolbar.querySelector('.vg-pivot-refresh')?.addEventListener('click', () => {
+        this.updatePivotConfig(this.opts.pivotConfig);
       });
       
-      // Remove fields
+      // Clear all fields
+      toolbar.querySelector('.vg-pivot-clear')?.addEventListener('click', () => {
+        this.clearPivotConfig();
+      });
+      
+      // Export data
+      toolbar.querySelector('.vg-pivot-export')?.addEventListener('click', () => {
+        this.exportPivotData();
+      });
+      
+      // Field actions (remove, move up/down)
       toolbar.addEventListener('click', (e) => {
-        if (e.target.classList.contains('vg-pivot-remove-field')) {
-          const type = e.target.dataset.type;
+        if (e.target.classList.contains('vg-field-remove')) {
           const field = e.target.dataset.field;
-          
-          const index = this.opts.pivotConfig[type].indexOf(field);
-          if (index > -1) {
-            this.opts.pivotConfig[type].splice(index, 1);
-            
-            if (type === 'values') {
-              delete this.opts.pivotConfig.aggregations[field];
-            }
-            
-            this.updatePivotConfig(this.opts.pivotConfig);
-          }
+          const type = e.target.dataset.type;
+          this.removePivotField(type, field);
+        } else if (e.target.classList.contains('vg-field-move-up')) {
+          const field = e.target.dataset.field;
+          const type = e.target.dataset.type;
+          this.movePivotField(type, field, -1);
+        } else if (e.target.classList.contains('vg-field-move-down')) {
+          const field = e.target.dataset.field;
+          const type = e.target.dataset.type;
+          this.movePivotField(type, field, 1);
         }
       });
       
-      // Change aggregation
+      // Aggregation changes
       toolbar.addEventListener('change', (e) => {
-        if (e.target.classList.contains('vg-pivot-agg-select')) {
+        if (e.target.classList.contains('vg-aggregation-select')) {
           const field = e.target.dataset.field;
           this.opts.pivotConfig.aggregations[field] = e.target.value;
           this.updatePivotConfig(this.opts.pivotConfig);
+        } else if (e.target.classList.contains('vg-filter-operator') || e.target.classList.contains('vg-filter-value')) {
+          this.applyPivotFilters();
         }
       });
+      
+      // Filter input changes (debounced)
+      let filterTimeout;
+      toolbar.addEventListener('input', (e) => {
+        if (e.target.classList.contains('vg-filter-value')) {
+          clearTimeout(filterTimeout);
+          filterTimeout = setTimeout(() => {
+            this.applyPivotFilters();
+          }, 300);
+        }
+      });
+    }
+    
+    removePivotField(type, field) {
+      const index = this.opts.pivotConfig[type].indexOf(field);
+      if (index > -1) {
+        this.opts.pivotConfig[type].splice(index, 1);
+        if (type === 'values') {
+          delete this.opts.pivotConfig.aggregations[field];
+        }
+        this._updatePivotFieldLists();
+        this.updatePivotConfig(this.opts.pivotConfig);
+      }
+    }
+    
+    movePivotField(type, field, direction) {
+      const fields = this.opts.pivotConfig[type];
+      const index = fields.indexOf(field);
+      
+      if (index === -1) return;
+      
+      const newIndex = index + direction;
+      if (newIndex < 0 || newIndex >= fields.length) return;
+      
+      // Swap fields
+      [fields[index], fields[newIndex]] = [fields[newIndex], fields[index]];
+      
+      this._updatePivotFieldLists();
+      this.updatePivotConfig(this.opts.pivotConfig);
+    }
+    
+    clearPivotConfig() {
+      this.opts.pivotConfig = {
+        rows: [],
+        columns: [],
+        values: [],
+        filters: [],
+        aggregations: {}
+      };
+      this._updatePivotFieldLists();
+      this.updatePivotConfig(this.opts.pivotConfig);
+    }
+    
+    applyPivotFilters() {
+      const filters = {};
+      const filterInputs = this.root.querySelectorAll('.vg-filter-value');
+      
+      filterInputs.forEach(input => {
+        const field = input.dataset.field;
+        const value = input.value.trim();
+        const operator = this.root.querySelector(`.vg-filter-operator[data-field="${field}"]`)?.value || 'equals';
+        
+        if (value) {
+          filters[field] = { operator, value };
+        }
+      });
+      
+      this.opts.pivotConfig.filters = filters;
+      this.updatePivotConfig(this.opts.pivotConfig);
+    }
+    
+    exportPivotData() {
+      const pivotData = this.generatePivotTable();
+      const csvContent = this.convertToCSV(pivotData);
+      this.downloadCSV(csvContent, 'pivot-table.csv');
+    }
+    
+    convertToCSV(data) {
+      if (!data.length) return '';
+      
+      const headers = Object.keys(data[0]);
+      const csvRows = [headers.join(',')];
+      
+      data.forEach(row => {
+        const values = headers.map(header => {
+          const value = row[header];
+          return typeof value === 'string' ? `"${value.replace(/"/g, '""')}"` : value;
+        });
+        csvRows.push(values.join(','));
+      });
+      
+      return csvRows.join('\n');
+    }
+    
+    downloadCSV(content, filename) {
+      const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
     }
 
     // ---- Public selection API ----

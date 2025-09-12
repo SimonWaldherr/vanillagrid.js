@@ -246,137 +246,380 @@ body.vg-resizing {
 
 /* Pivot Table Styles */
 .vg-pivot-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 16px;
   background: var(--vg-bg);
   border: 1px solid var(--vg-border);
   border-radius: 8px;
+  padding: 16px;
   margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.vg-pivot-section {
+.vg-pivot-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--vg-border);
 }
 
-.vg-pivot-section h4 {
+.vg-pivot-title h3 {
+  margin: 0 0 4px 0;
+  color: var(--vg-fg);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.vg-pivot-title p {
   margin: 0;
-  color: var(--vg-fg);
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.vg-pivot-exit {
-  background: #ef4444;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.vg-pivot-exit:hover {
-  background: #dc2626;
-}
-
-.vg-pivot-fields {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 16px;
-}
-
-.vg-pivot-field-section {
-  background: var(--vg-surface-1);
-  border: 1px solid var(--vg-border);
-  border-radius: 8px;
-  padding: 12px;
-}
-
-.vg-pivot-field-section label {
-  display: block;
-  font-weight: 600;
-  color: var(--vg-fg);
-  margin-bottom: 8px;
+  color: var(--vg-muted);
   font-size: 14px;
 }
 
-.vg-pivot-field-list {
-  min-height: 60px;
-  border: 2px dashed var(--vg-border);
-  border-radius: 6px;
-  padding: 8px;
-  margin-bottom: 8px;
+.vg-pivot-exit {
+  background: #ff4757 !important;
+  color: white !important;
+  border: none !important;
+  padding: 8px 16px !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+}
+
+.vg-pivot-exit:hover {
+  background: #ff3838 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 71, 87, 0.3);
+}
+
+.vg-pivot-workspace {
+  display: flex;
+  gap: 20px;
+}
+
+.vg-pivot-fields-panel {
+  flex: 0 0 280px;
+  background: var(--vg-surface-1);
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid var(--vg-border);
+}
+
+.vg-pivot-fields-panel h4 {
+  margin: 0 0 12px 0;
+  color: var(--vg-fg);
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.vg-pivot-available-fields {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
+  max-height: 400px;
+  overflow-y: auto;
 }
 
-.vg-pivot-field-list:empty::before {
-  content: "Drop fields here...";
-  color: var(--vg-muted);
-  font-style: italic;
-  text-align: center;
-  padding: 20px;
-  display: block;
-}
-
-.vg-pivot-field-item {
+.vg-pivot-field-chip {
   display: flex;
   align-items: center;
   gap: 8px;
   background: var(--vg-bg);
   border: 1px solid var(--vg-border);
   border-radius: 6px;
-  padding: 6px 8px;
-  font-size: 13px;
+  padding: 8px 12px;
+  cursor: grab;
+  transition: all 0.2s ease;
+  user-select: none;
 }
 
-.vg-pivot-field-item span {
+.vg-pivot-field-chip:hover {
+  border-color: var(--vg-primary);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+  transform: translateY(-1px);
+}
+
+.vg-pivot-field-chip.vg-dragging {
+  opacity: 0.5;
+  transform: rotate(5deg);
+  cursor: grabbing;
+}
+
+.vg-field-icon {
+  font-size: 16px;
+  width: 20px;
+  text-align: center;
+}
+
+.vg-field-label {
   flex: 1;
+  font-weight: 500;
   color: var(--vg-fg);
 }
 
-.vg-pivot-agg-select {
-  padding: 2px 4px;
-  border: 1px solid var(--vg-border);
-  border-radius: 4px;
+.vg-field-type {
+  font-size: 11px;
+  background: var(--vg-surface-1);
+  color: var(--vg-muted);
+  padding: 2px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.vg-pivot-config-panel {
+  flex: 1;
+}
+
+.vg-pivot-drop-zones {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.vg-pivot-zone {
   background: var(--vg-bg);
-  color: var(--vg-fg);
-  font-size: 12px;
+  border: 2px dashed var(--vg-border);
+  border-radius: 8px;
+  padding: 16px;
+  min-height: 120px;
+  transition: all 0.2s ease;
 }
 
-.vg-pivot-remove-field {
-  background: #ef4444;
-  color: white;
+.vg-pivot-zone.vg-drop-active {
+  border-color: var(--vg-primary);
+  background: rgba(59, 130, 246, 0.05);
+  border-style: solid;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.vg-pivot-zone-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--vg-border);
+}
+
+.vg-pivot-zone-icon {
+  font-size: 18px;
+}
+
+.vg-pivot-zone-title {
+  font-weight: 600;
+  color: var(--vg-fg);
+  font-size: 14px;
+}
+
+.vg-pivot-zone-hint {
+  font-size: 12px;
+  color: var(--vg-muted);
+  margin-left: auto;
+}
+
+.vg-pivot-field-list {
+  min-height: 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vg-pivot-field-item {
+  background: var(--vg-bg);
+  border: 1px solid var(--vg-border);
+  border-radius: 6px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: grab;
+  transition: all 0.2s ease;
+}
+
+.vg-pivot-field-item:hover {
+  border-color: var(--vg-primary);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+}
+
+.vg-pivot-field-item.vg-dragging {
+  opacity: 0.5;
+  transform: rotate(3deg);
+  cursor: grabbing;
+}
+
+.vg-field-item-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.vg-field-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.vg-field-actions button {
+  width: 24px;
+  height: 24px;
   border: none;
   border-radius: 4px;
-  width: 20px;
-  height: 20px;
+  background: var(--vg-surface-1);
+  color: var(--vg-muted);
   cursor: pointer;
+  font-size: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  line-height: 1;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
-.vg-pivot-remove-field:hover {
-  background: #dc2626;
+.vg-field-actions button:hover:not(:disabled) {
+  background: var(--vg-primary);
+  color: white;
 }
 
-.vg-pivot-field-select {
-  width: 100%;
-  padding: 8px;
+.vg-field-actions button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.vg-field-remove {
+  background: #dc3545 !important;
+  color: white !important;
+}
+
+.vg-field-remove:hover {
+  background: #c82333 !important;
+}
+
+.vg-aggregation-select,
+.vg-filter-operator {
+  background: var(--vg-surface-1);
   border: 1px solid var(--vg-border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  margin-left: 8px;
+  color: var(--vg-fg);
+}
+
+.vg-filter-value {
+  background: var(--vg-surface-1);
+  border: 1px solid var(--vg-border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  margin-left: 4px;
+  width: 100px;
+  color: var(--vg-fg);
+}
+
+.vg-pivot-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  color: var(--vg-muted);
+  text-align: center;
+}
+
+.vg-empty-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+  opacity: 0.5;
+}
+
+.vg-empty-text {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.vg-pivot-actions {
+  display: flex;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--vg-border);
+}
+
+.vg-pivot-actions .vg-btn {
+  flex: 1;
+  padding: 12px 16px;
   border-radius: 6px;
+  border: 1px solid var(--vg-border);
   background: var(--vg-bg);
   color: var(--vg-fg);
-  font-size: 13px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.vg-pivot-refresh {
+  background: #28a745 !important;
+  color: white !important;
+  border-color: #28a745 !important;
+}
+
+.vg-pivot-refresh:hover {
+  background: #218838 !important;
+  border-color: #1e7e34 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.vg-pivot-clear {
+  background: #ffc107 !important;
+  color: #212529 !important;
+  border-color: #ffc107 !important;
+}
+
+.vg-pivot-clear:hover {
+  background: #e0a800 !important;
+  border-color: #d39e00 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+}
+
+.vg-pivot-export {
+  background: #17a2b8 !important;
+  color: white !important;
+  border-color: #17a2b8 !important;
+}
+
+.vg-pivot-export:hover {
+  background: #138496 !important;
+  border-color: #117a8b !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
+}
+
+/* Responsive design */
+@media (max-width: 1024px) {
+  .vg-pivot-workspace {
+    flex-direction: column;
+  }
+  
+  .vg-pivot-fields-panel {
+    flex: none;
+  }
+  
+  .vg-pivot-drop-zones {
+    grid-template-columns: 1fr;
+  }
+  
+  .vg-pivot-actions {
+    flex-direction: column;
+  }
 }
 
 /* Dark theme support for pivot */
