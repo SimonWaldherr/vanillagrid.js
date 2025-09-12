@@ -57,6 +57,17 @@
   </div>
   <div id="enhanced-grid"></div>
 
+  <h2 style="font-family:system-ui;margin:24px 0 8px;">📊 Pivot Table Demo</h2>
+  <p style="color:#6b7280;margin:0 0 8px 0;">Analyze e-commerce data across multiple dimensions. Compare performance by category, region, channel, and time period with meaningful business metrics.</p>
+  <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap;">
+    <button id="btn-enable-pivot" style="padding:6px 10px; border:1px solid #e5e7eb; border-radius:8px; background:#fff; cursor:pointer;">Enable Pivot Mode</button>
+    <button id="btn-sample-pivot" style="padding:6px 10px; border:1px solid #e5e7eb; border-radius:8px; background:#fff; cursor:pointer;">Category Performance</button>
+    <button id="btn-regional-pivot" style="padding:6px 10px; border:1px solid #e5e7eb; border-radius:8px; background:#fff; cursor:pointer;">Regional Analysis</button>
+    <button id="btn-channel-pivot" style="padding:6px 10px; border:1px solid #e5e7eb; border-radius:8px; background:#fff; cursor:pointer;">Channel Comparison</button>
+    <button id="btn-brand-pivot" style="padding:6px 10px; border:1px solid #e5e7eb; border-radius:8px; background:#fff; cursor:pointer;">Brand Performance</button>
+  </div>
+  <div id="pivot-grid"></div>
+
   <script>
     // Theme / Density toggles
     const applyThemeDensity = () => {
@@ -357,6 +368,124 @@
   };
 
   window.enhancedGrid = enhancedGrid;
+
+  // Pivot Table Demo - E-commerce Sales Data
+  const ecommerceData = [
+    // Electronics Category
+    { category: 'Electronics', product: 'Smartphone', brand: 'Apple', quarter: 'Q1', region: 'North America', channel: 'Online', units: 1200, revenue: 960000, cost: 720000, returns: 24 },
+    { category: 'Electronics', product: 'Smartphone', brand: 'Apple', quarter: 'Q2', region: 'North America', channel: 'Online', units: 1350, revenue: 1080000, cost: 810000, returns: 27 },
+    { category: 'Electronics', product: 'Smartphone', brand: 'Samsung', quarter: 'Q1', region: 'North America', channel: 'Retail', units: 800, revenue: 480000, cost: 400000, returns: 32 },
+    { category: 'Electronics', product: 'Smartphone', brand: 'Samsung', quarter: 'Q2', region: 'Europe', channel: 'Online', units: 950, revenue: 570000, cost: 475000, returns: 19 },
+    { category: 'Electronics', product: 'Laptop', brand: 'Dell', quarter: 'Q1', region: 'North America', channel: 'Retail', units: 400, revenue: 480000, cost: 320000, returns: 8 },
+    { category: 'Electronics', product: 'Laptop', brand: 'Apple', quarter: 'Q2', region: 'Europe', channel: 'Online', units: 300, revenue: 540000, cost: 360000, returns: 6 },
+    { category: 'Electronics', product: 'Tablet', brand: 'Apple', quarter: 'Q1', region: 'Asia', channel: 'Online', units: 600, revenue: 240000, cost: 180000, returns: 12 },
+    { category: 'Electronics', product: 'Headphones', brand: 'Sony', quarter: 'Q2', region: 'North America', channel: 'Retail', units: 1500, revenue: 225000, cost: 112500, returns: 45 },
+    
+    // Clothing Category  
+    { category: 'Clothing', product: 'T-Shirt', brand: 'Nike', quarter: 'Q1', region: 'North America', channel: 'Online', units: 2500, revenue: 75000, cost: 37500, returns: 125 },
+    { category: 'Clothing', product: 'T-Shirt', brand: 'Adidas', quarter: 'Q1', region: 'Europe', channel: 'Retail', units: 2200, revenue: 66000, cost: 33000, returns: 110 },
+    { category: 'Clothing', product: 'Jeans', brand: 'Levi\'s', quarter: 'Q2', region: 'North America', channel: 'Retail', units: 1800, revenue: 144000, cost: 72000, returns: 54 },
+    { category: 'Clothing', product: 'Sneakers', brand: 'Nike', quarter: 'Q1', region: 'Asia', channel: 'Online', units: 1200, revenue: 144000, cost: 84000, returns: 24 },
+    { category: 'Clothing', product: 'Sneakers', brand: 'Adidas', quarter: 'Q2', region: 'Europe', channel: 'Online', units: 1100, revenue: 132000, cost: 77000, returns: 22 },
+    { category: 'Clothing', product: 'Jacket', brand: 'North Face', quarter: 'Q1', region: 'North America', channel: 'Retail', units: 600, revenue: 120000, cost: 72000, returns: 18 },
+    
+    // Home & Garden Category
+    { category: 'Home & Garden', product: 'Coffee Maker', brand: 'Keurig', quarter: 'Q1', region: 'North America', channel: 'Online', units: 800, revenue: 80000, cost: 48000, returns: 16 },
+    { category: 'Home & Garden', product: 'Vacuum Cleaner', brand: 'Dyson', quarter: 'Q2', region: 'Europe', channel: 'Retail', units: 450, revenue: 135000, cost: 81000, returns: 9 },
+    { category: 'Home & Garden', product: 'Garden Tools', brand: 'Black & Decker', quarter: 'Q1', region: 'North America', channel: 'Retail', units: 1000, revenue: 50000, cost: 30000, returns: 40 },
+    { category: 'Home & Garden', product: 'Furniture', brand: 'IKEA', quarter: 'Q2', region: 'Europe', channel: 'Online', units: 300, revenue: 90000, cost: 54000, returns: 15 },
+    { category: 'Home & Garden', product: 'Kitchen Appliance', brand: 'KitchenAid', quarter: 'Q1', region: 'Asia', channel: 'Online', units: 200, revenue: 60000, cost: 36000, returns: 4 },
+    
+    // Books & Media Category
+    { category: 'Books & Media', product: 'Fiction Book', brand: 'Penguin', quarter: 'Q1', region: 'North America', channel: 'Online', units: 5000, revenue: 75000, cost: 37500, returns: 100 },
+    { category: 'Books & Media', product: 'Textbook', brand: 'McGraw Hill', quarter: 'Q2', region: 'North America', channel: 'Online', units: 1200, revenue: 180000, cost: 84000, returns: 24 },
+    { category: 'Books & Media', product: 'Video Game', brand: 'EA Sports', quarter: 'Q1', region: 'Asia', channel: 'Retail', units: 2000, revenue: 120000, cost: 60000, returns: 80 },
+    { category: 'Books & Media', product: 'Music Album', brand: 'Universal', quarter: 'Q2', region: 'Europe', channel: 'Online', units: 3000, revenue: 45000, cost: 22500, returns: 60 },
+    
+    // Sports & Outdoors Category
+    { category: 'Sports & Outdoors', product: 'Bicycle', brand: 'Trek', quarter: 'Q1', region: 'North America', channel: 'Retail', units: 150, revenue: 75000, cost: 45000, returns: 3 },
+    { category: 'Sports & Outdoors', product: 'Camping Gear', brand: 'Coleman', quarter: 'Q2', region: 'North America', channel: 'Online', units: 800, revenue: 80000, cost: 48000, returns: 32 },
+    { category: 'Sports & Outdoors', product: 'Fitness Equipment', brand: 'Bowflex', quarter: 'Q1', region: 'Europe', channel: 'Online', units: 100, revenue: 80000, cost: 48000, returns: 2 },
+    { category: 'Sports & Outdoors', product: 'Tennis Racket', brand: 'Wilson', quarter: 'Q2', region: 'Asia', channel: 'Retail', units: 400, revenue: 40000, cost: 24000, returns: 8 },
+  ];
+
+  const pivotGrid = new VanillaGrid('#pivot-grid', {
+    data: ecommerceData,
+    pageSize: 25,
+    columns: [
+      { key: 'category', label: 'Category', sortable: true },
+      { key: 'product', label: 'Product', sortable: true },
+      { key: 'brand', label: 'Brand', sortable: true },
+      { key: 'quarter', label: 'Quarter', sortable: true },
+      { key: 'region', label: 'Region', sortable: true },
+      { key: 'channel', label: 'Sales Channel', sortable: true },
+      { key: 'units', label: 'Units Sold', type: 'number', sortable: true, format: (v) => Number(v).toLocaleString() },
+      { key: 'revenue', label: 'Revenue', type: 'number', sortable: true, format: (v) => '$' + Number(v).toLocaleString() },
+      { key: 'cost', label: 'Cost', type: 'number', sortable: true, format: (v) => '$' + Number(v).toLocaleString() },
+      { key: 'returns', label: 'Returns', type: 'number', sortable: true },
+    ],
+    onPivotChange: (pivotData, config) => {
+      console.log('Pivot configuration changed:', config);
+      console.log('Pivot data:', pivotData);
+    }
+  });
+
+  // Pivot controls
+  document.getElementById('btn-enable-pivot').onclick = () => {
+    pivotGrid.enablePivot();
+  };
+
+  document.getElementById('btn-sample-pivot').onclick = () => {
+    pivotGrid.enablePivot({
+      rows: ['category'],
+      columns: ['quarter'],
+      values: ['revenue', 'units', 'cost'],
+      aggregations: {
+        revenue: 'sum',
+        units: 'sum',
+        cost: 'sum'
+      }
+    });
+  };
+
+  document.getElementById('btn-regional-pivot').onclick = () => {
+    pivotGrid.enablePivot({
+      rows: ['region', 'category'],
+      columns: ['channel'],
+      values: ['revenue', 'returns'],
+      aggregations: {
+        revenue: 'sum',
+        returns: 'sum'
+      }
+    });
+  };
+
+  document.getElementById('btn-channel-pivot').onclick = () => {
+    pivotGrid.enablePivot({
+      rows: ['channel'],
+      columns: ['quarter'],
+      values: ['revenue', 'units'],
+      aggregations: {
+        revenue: 'avg',
+        units: 'avg'
+      }
+    });
+  };
+
+  document.getElementById('btn-brand-pivot').onclick = () => {
+    pivotGrid.enablePivot({
+      rows: ['brand', 'product'],
+      columns: ['region'],
+      values: ['revenue', 'cost', 'units'],
+      aggregations: {
+        revenue: 'sum',
+        cost: 'sum',
+        units: 'sum'
+      }
+    });
+  };
+
+  window.pivotGrid = pivotGrid;
   </script>
 </body>
 </html>

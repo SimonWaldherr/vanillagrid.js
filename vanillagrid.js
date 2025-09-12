@@ -85,6 +85,15 @@
         onRowEdit: null, // (row, field, newValue, oldValue) => void
         onRowDrop: null, // (draggedRow, targetRow, position) => void
         customCellTypes: {}, // custom cell renderers: { typeName: renderFunction }
+        // Pivot table options
+        pivotMode: false, // enable pivot table mode
+        pivotConfig: {
+          rows: [], // field names for row grouping
+          columns: [], // field names for column grouping  
+          values: [], // field names for value aggregation
+          aggregations: {}, // field -> aggregation function mapping
+        },
+        onPivotChange: null, // (pivotData, config) => void
       };
       this.opts = Object.assign({}, defaults, options || {});
       if (options && options.tree) this.opts.tree = Object.assign({}, defaults.tree, options.tree);
@@ -122,6 +131,10 @@
         editingCell: null, // { rowId, columnKey }
         draggedRow: null, // row being dragged
         focusedCell: null, // { rowId, columnKey } for keyboard navigation
+        // Pivot state
+        pivotData: null, // processed pivot table data
+        originalData: null, // backup of original data when in pivot mode
+        originalColumns: null, // backup of original columns when in pivot mode
       };
 
       // Root
@@ -320,6 +333,81 @@
       delete this.opts.customCellTypes[typeName];
     }
 
+    // -------- Public: Pivot Table API --------
+    
+    // Enable pivot mode with configuration
+    enablePivot(config = {}) {
+      if (!this.opts.pivotMode) {
+        // Backup original data and columns
+        this.state.originalData = this.data.slice();
+        this.state.originalColumns = this.columns.slice();
+      }
+      
+      this.opts.pivotMode = true;
+      this.opts.pivotConfig = {
+        rows: config.rows || [],
+        columns: config.columns || [],
+        values: config.values || [],
+        aggregations: config.aggregations || {}
+      };
+      
+      this._generatePivotTable();
+      this._renderPivotToolbar();
+      this._renderHeader();
+      this._renderBody();
+      this._renderPager();
+      
+      if (this.opts.onPivotChange) {
+        this.opts.onPivotChange(this.state.pivotData, this.opts.pivotConfig);
+      }
+    }
+    
+    // Disable pivot mode and restore original data
+    disablePivot() {
+      if (this.state.originalData && this.state.originalColumns) {
+        this.data = this.state.originalData;
+        this.columns = this.state.originalColumns;
+        this.state.originalData = null;
+        this.state.originalColumns = null;
+      }
+      
+      this.opts.pivotMode = false;
+      this.state.pivotData = null;
+      
+      this._renderToolbar();
+      this._renderHeader();
+      this._renderBody();
+      this._renderPager();
+    }
+    
+    // Update pivot configuration
+    updatePivotConfig(config) {
+      if (!this.opts.pivotMode) return;
+      
+      Object.assign(this.opts.pivotConfig, config);
+      this._generatePivotTable();
+      this._renderHeader();
+      this._renderBody();
+      
+      if (this.opts.onPivotChange) {
+        this.opts.onPivotChange(this.state.pivotData, this.opts.pivotConfig);
+      }
+    }
+    
+    // Get pivot table data
+    getPivotData() {
+      return this.state.pivotData;
+    }
+    
+    // Get available fields for pivot configuration
+    getAvailableFields() {
+      const originalData = this.state.originalData || this.data;
+      if (!originalData.length) return [];
+      
+      const sample = originalData[0];
+      return Object.keys(sample).filter(key => !key.startsWith('__vg'));
+    }
+
     // ------------- Internal: Rendering ----------------
     _render() {
     this.root.innerHTML = `
@@ -354,6 +442,12 @@
     }
 
     _renderToolbar() {
+      // If in pivot mode, render pivot toolbar instead
+      if (this.opts.pivotMode) {
+        this._renderPivotToolbar();
+        return;
+      }
+      
       const filterable = this.opts.filterable;
       const groupable = this.opts.groupable;
       const i18n = this.opts.i18n;
@@ -1747,6 +1841,320 @@
         const key = td.dataset.key;
         if (!key) return;
         td.style.display = hidden.has(key) ? 'none' : '';
+      });
+    }
+
+    // ---- Pivot Table Internal Methods ----
+    
+    _generatePivotTable() {
+      const sourceData = this.state.originalData || this.data;
+      const config = this.opts.pivotConfig;
+      
+      if (!config.rows.length && !config.columns.length) {
+        // No pivot configuration, show summary of values
+        this._generatePivotSummary(sourceData, config);
+        return;
+      }
+      
+      // Group data by row fields
+      const rowGroups = this._groupByFields(sourceData, config.rows);
+      
+      // Get unique column values
+      const columnValues = config.columns.length 
+        ? this._getUniqueValues(sourceData, config.columns)
+        : [null];
+      
+      // Generate pivot table structure
+      const pivotRows = [];
+      
+      Object.entries(rowGroups).forEach(([rowKey, rowData]) => {
+        const row = {};
+        
+        // Add row group labels
+        const rowKeys = rowKey.split('|');
+        config.rows.forEach((field, i) => {
+          row[field] = rowKeys[i] || '';
+        });
+        
+        // Calculate values for each column combination
+        columnValues.forEach(colKey => {
+          const filteredData = colKey 
+            ? rowData.filter(item => this._getFieldPath(item, config.columns) === colKey)
+            : rowData;
+          
+          config.values.forEach(valueField => {
+            const aggFunc = config.aggregations[valueField] || 'sum';
+            const colName = colKey ? `${valueField}_${colKey}` : valueField;
+            row[colName] = this._aggregate(filteredData, valueField, aggFunc);
+          });
+        });
+        
+        pivotRows.push(row);
+      });
+      
+      // Generate columns for pivot table
+      const pivotColumns = [];
+      
+      // Add row field columns
+      config.rows.forEach(field => {
+        pivotColumns.push({
+          key: field,
+          label: this._getFieldLabel(field),
+          type: 'text',
+          sortable: true
+        });
+      });
+      
+      // Add value columns for each column combination
+      columnValues.forEach(colKey => {
+        config.values.forEach(valueField => {
+          const colName = colKey ? `${valueField}_${colKey}` : valueField;
+          const label = colKey 
+            ? `${this._getFieldLabel(valueField)} (${colKey})`
+            : this._getFieldLabel(valueField);
+          
+          pivotColumns.push({
+            key: colName,
+            label: label,
+            type: 'number',
+            sortable: true,
+            format: this._getNumberFormatter(valueField)
+          });
+        });
+      });
+      
+      this.state.pivotData = { rows: pivotRows, columns: pivotColumns };
+      this.data = pivotRows;
+      this.columns = pivotColumns;
+    }
+    
+    _generatePivotSummary(data, config) {
+      if (!config.values.length) {
+        this.state.pivotData = { rows: [], columns: [] };
+        this.data = [];
+        this.columns = [];
+        return;
+      }
+      
+      const summaryRow = {};
+      config.values.forEach(field => {
+        const aggFunc = config.aggregations[field] || 'sum';
+        summaryRow[field] = this._aggregate(data, field, aggFunc);
+      });
+      
+      const summaryColumns = config.values.map(field => ({
+        key: field,
+        label: `${this._getFieldLabel(field)} (${config.aggregations[field] || 'sum'})`,
+        type: 'number',
+        sortable: false,
+        format: this._getNumberFormatter(field)
+      }));
+      
+      this.state.pivotData = { rows: [summaryRow], columns: summaryColumns };
+      this.data = [summaryRow];
+      this.columns = summaryColumns;
+    }
+    
+    _groupByFields(data, fields) {
+      const groups = {};
+      
+      data.forEach(item => {
+        const key = fields.map(field => this._getFieldValue(item, field)).join('|');
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(item);
+      });
+      
+      return groups;
+    }
+    
+    _getUniqueValues(data, fields) {
+      const values = new Set();
+      data.forEach(item => {
+        const value = this._getFieldPath(item, fields);
+        if (value !== null && value !== undefined) {
+          values.add(value);
+        }
+      });
+      return Array.from(values).sort();
+    }
+    
+    _getFieldPath(item, fields) {
+      return fields.map(field => this._getFieldValue(item, field)).join('|');
+    }
+    
+    _getFieldValue(item, field) {
+      return item[field] ?? '';
+    }
+    
+    _getFieldLabel(field) {
+      const col = this.state.originalColumns?.find(c => c.key === field);
+      return col?.label || field;
+    }
+    
+    _aggregate(data, field, func) {
+      const values = data.map(item => Number(item[field])).filter(v => !isNaN(v));
+      if (!values.length) return 0;
+      
+      switch (func) {
+        case 'sum': return values.reduce((a, b) => a + b, 0);
+        case 'avg': return values.reduce((a, b) => a + b, 0) / values.length;
+        case 'min': return Math.min(...values);
+        case 'max': return Math.max(...values);
+        case 'count': return data.length;
+        default: return values.reduce((a, b) => a + b, 0);
+      }
+    }
+    
+    _getNumberFormatter(field) {
+      const col = this.state.originalColumns?.find(c => c.key === field);
+      return col?.format || ((v) => typeof v === 'number' ? v.toLocaleString() : v);
+    }
+    
+    _renderPivotToolbar() {
+      const toolbar = this.root.querySelector('.vg-toolbar');
+      if (!toolbar) return;
+      
+      // Clear existing toolbar content
+      toolbar.innerHTML = '';
+      
+      const pivotControls = document.createElement('div');
+      pivotControls.className = 'vg-pivot-controls';
+      pivotControls.innerHTML = `
+        <div class="vg-pivot-section">
+          <h4>Pivot Table Configuration</h4>
+          <button class="vg-btn vg-pivot-exit">Exit Pivot Mode</button>
+        </div>
+        <div class="vg-pivot-fields">
+          <div class="vg-pivot-field-section">
+            <label>Row Fields:</label>
+            <div class="vg-pivot-field-list" data-type="rows"></div>
+            <select class="vg-pivot-field-select" data-type="rows">
+              <option value="">Add row field...</option>
+            </select>
+          </div>
+          <div class="vg-pivot-field-section">
+            <label>Column Fields:</label>
+            <div class="vg-pivot-field-list" data-type="columns"></div>
+            <select class="vg-pivot-field-select" data-type="columns">
+              <option value="">Add column field...</option>
+            </select>
+          </div>
+          <div class="vg-pivot-field-section">
+            <label>Value Fields:</label>
+            <div class="vg-pivot-field-list" data-type="values"></div>
+            <select class="vg-pivot-field-select" data-type="values">
+              <option value="">Add value field...</option>
+            </select>
+          </div>
+        </div>
+      `;
+      
+      toolbar.appendChild(pivotControls);
+      
+      // Populate field options
+      const fields = this.getAvailableFields();
+      toolbar.querySelectorAll('.vg-pivot-field-select').forEach(select => {
+        fields.forEach(field => {
+          const option = document.createElement('option');
+          option.value = field;
+          option.textContent = this._getFieldLabel(field);
+          select.appendChild(option);
+        });
+      });
+      
+      // Render current configuration
+      this._updatePivotFieldLists();
+      
+      // Bind events
+      this._bindPivotEvents();
+    }
+    
+    _updatePivotFieldLists() {
+      const config = this.opts.pivotConfig;
+      
+      ['rows', 'columns', 'values'].forEach(type => {
+        const list = this.root.querySelector(`.vg-pivot-field-list[data-type="${type}"]`);
+        if (!list) return;
+        
+        list.innerHTML = '';
+        config[type].forEach(field => {
+          const fieldItem = document.createElement('div');
+          fieldItem.className = 'vg-pivot-field-item';
+          fieldItem.innerHTML = `
+            <span>${this._getFieldLabel(field)}</span>
+            ${type === 'values' ? `
+              <select class="vg-pivot-agg-select" data-field="${field}">
+                <option value="sum" ${(config.aggregations[field] || 'sum') === 'sum' ? 'selected' : ''}>Sum</option>
+                <option value="avg" ${config.aggregations[field] === 'avg' ? 'selected' : ''}>Average</option>
+                <option value="min" ${config.aggregations[field] === 'min' ? 'selected' : ''}>Min</option>
+                <option value="max" ${config.aggregations[field] === 'max' ? 'selected' : ''}>Max</option>
+                <option value="count" ${config.aggregations[field] === 'count' ? 'selected' : ''}>Count</option>
+              </select>
+            ` : ''}
+            <button class="vg-pivot-remove-field" data-type="${type}" data-field="${field}">×</button>
+          `;
+          list.appendChild(fieldItem);
+        });
+      });
+    }
+    
+    _bindPivotEvents() {
+      const toolbar = this.root.querySelector('.vg-toolbar');
+      if (!toolbar) return;
+      
+      // Exit pivot mode
+      toolbar.querySelector('.vg-pivot-exit')?.addEventListener('click', () => {
+        this.disablePivot();
+      });
+      
+      // Add fields
+      toolbar.querySelectorAll('.vg-pivot-field-select').forEach(select => {
+        select.addEventListener('change', (e) => {
+          if (!e.target.value) return;
+          
+          const type = e.target.dataset.type;
+          const field = e.target.value;
+          
+          if (!this.opts.pivotConfig[type].includes(field)) {
+            this.opts.pivotConfig[type].push(field);
+            
+            if (type === 'values' && !this.opts.pivotConfig.aggregations[field]) {
+              this.opts.pivotConfig.aggregations[field] = 'sum';
+            }
+            
+            this.updatePivotConfig(this.opts.pivotConfig);
+          }
+          
+          e.target.value = '';
+        });
+      });
+      
+      // Remove fields
+      toolbar.addEventListener('click', (e) => {
+        if (e.target.classList.contains('vg-pivot-remove-field')) {
+          const type = e.target.dataset.type;
+          const field = e.target.dataset.field;
+          
+          const index = this.opts.pivotConfig[type].indexOf(field);
+          if (index > -1) {
+            this.opts.pivotConfig[type].splice(index, 1);
+            
+            if (type === 'values') {
+              delete this.opts.pivotConfig.aggregations[field];
+            }
+            
+            this.updatePivotConfig(this.opts.pivotConfig);
+          }
+        }
+      });
+      
+      // Change aggregation
+      toolbar.addEventListener('change', (e) => {
+        if (e.target.classList.contains('vg-pivot-agg-select')) {
+          const field = e.target.dataset.field;
+          this.opts.pivotConfig.aggregations[field] = e.target.value;
+          this.updatePivotConfig(this.opts.pivotConfig);
+        }
       });
     }
 
