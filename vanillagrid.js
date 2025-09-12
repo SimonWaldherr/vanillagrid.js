@@ -75,6 +75,16 @@
         onSelectionChange: null, // (selectedRows) => void
         // Column visibility
         columnsMenu: true, // show a simple Columns menu in toolbar
+        // New features
+        resizableColumns: true, // allow column resizing by dragging borders
+        editableRows: false, // enable inline row editing
+        rowDragDrop: false, // enable row reordering via drag and drop
+        frozenColumns: 0, // number of columns to freeze on the left
+        keyboardNavigation: true, // enable arrow key navigation
+        contextMenu: true, // enable right-click context menu
+        onRowEdit: null, // (row, field, newValue, oldValue) => void
+        onRowDrop: null, // (draggedRow, targetRow, position) => void
+        customCellTypes: {}, // custom cell renderers: { typeName: renderFunction }
       };
       this.opts = Object.assign({}, defaults, options || {});
       if (options && options.tree) this.opts.tree = Object.assign({}, defaults.tree, options.tree);
@@ -107,6 +117,11 @@
         selected: new Set(), // row ids
         // Column visibility state
         hiddenCols: new Set(),
+        // New feature states
+        columnWidths: new Map(), // column key -> width in px
+        editingCell: null, // { rowId, columnKey }
+        draggedRow: null, // row being dragged
+        focusedCell: null, // { rowId, columnKey } for keyboard navigation
       };
 
       // Root
@@ -212,6 +227,99 @@
       this._downloadBlob(md, name, 'text/markdown;charset=utf-8;');
     }
 
+    // -------- Public: New Features API --------
+    
+    // Row management
+    addRow(rowData, index = -1) {
+      const newRow = { ...rowData };
+      this._assignIdsDeep([newRow]);
+      this._indexRowsDeep([newRow]);
+      
+      if (index >= 0 && index < this.data.length) {
+        this.data.splice(index, 0, newRow);
+      } else {
+        this.data.push(newRow);
+      }
+      
+      this._renderBody();
+      this._renderPager();
+      return newRow;
+    }
+
+    updateRow(rowId, newData) {
+      const row = this.rowById.get(rowId);
+      if (row) {
+        Object.assign(row, newData);
+        this._renderBody();
+        return row;
+      }
+      return null;
+    }
+
+    deleteRow(rowId) {
+      const index = this.data.findIndex(row => row.__vgid === rowId);
+      if (index > -1) {
+        const deleted = this.data.splice(index, 1)[0];
+        this.rowById.delete(rowId);
+        this.state.selected.delete(rowId);
+        this._renderBody();
+        this._renderPager();
+        return deleted;
+      }
+      return null;
+    }
+
+    // Column management
+    setColumnWidth(columnKey, width) {
+      this.state.columnWidths.set(columnKey, width);
+      this._renderHeader();
+    }
+
+    getColumnWidth(columnKey) {
+      return this.state.columnWidths.get(columnKey);
+    }
+
+    resetColumnWidths() {
+      this.state.columnWidths.clear();
+      this._renderHeader();
+    }
+
+    // Cell editing
+    startEdit(rowId, columnKey) {
+      const row = this.root.querySelector(`tr[data-rowid="${rowId}"]`);
+      if (row) {
+        const cell = row.querySelector(`td[data-column-key="${columnKey}"]`);
+        if (cell) {
+          this._startCellEdit(cell);
+          return true;
+        }
+      }
+      return false;
+    }
+
+    // Navigation and focus
+    focusCell(rowId, columnKey) {
+      const row = this.root.querySelector(`tr[data-rowid="${rowId}"]`);
+      if (row) {
+        const cell = row.querySelector(`td[data-column-key="${columnKey}"]`);
+        if (cell) {
+          cell.focus();
+          this.state.focusedCell = { rowId, columnKey };
+          return true;
+        }
+      }
+      return false;
+    }
+
+    // Custom cell type registration
+    registerCellType(typeName, renderFunction) {
+      this.opts.customCellTypes[typeName] = renderFunction;
+    }
+
+    unregisterCellType(typeName) {
+      delete this.opts.customCellTypes[typeName];
+    }
+
     // ------------- Internal: Rendering ----------------
     _render() {
     this.root.innerHTML = `
@@ -234,6 +342,8 @@
       this._renderToolbar();
       this._renderHeader();
       this._bindTableEvents();
+      this._bindKeyboardNavigation();
+      this._bindContextMenu();
       if (this._shouldRemoteFetch('init')) {
         this._remoteLoad(1);
       } else {
@@ -392,6 +502,12 @@
         th.tabIndex = 0;
         th.dataset.key = col.key;
         th.className = 'vg-th';
+        
+        // Apply custom width if set
+        if (this.state.columnWidths.has(col.key)) {
+          th.style.width = this.state.columnWidths.get(col.key) + 'px';
+        }
+        
         if (this.opts.sortable && (col.sortable !== false)) {
           th.classList.add('vg-sortable');
           if (sortKey === col.key) th.classList.add(sortDir === 'asc' ? 'vg-asc' : 'vg-desc');
@@ -401,6 +517,15 @@
           label = `<span class="vg-tree-th-pad"></span>${label}`;
         }
         th.innerHTML = `<span class="vg-th-text">${label}</span>`;
+        
+        // Add resize handle for resizable columns
+        if (this.opts.resizableColumns && idx < this.columns.length - 1) {
+          const resizeHandle = document.createElement('div');
+          resizeHandle.className = 'vg-resize-handle';
+          resizeHandle.dataset.columnKey = col.key;
+          th.appendChild(resizeHandle);
+        }
+        
         if (this.opts.sortable && (col.sortable !== false)) {
           th.setAttribute('aria-sort', (sortKey === col.key) ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none');
         }
@@ -411,7 +536,10 @@
 
       // Header sort events
       this.theadEl.querySelectorAll('.vg-th.vg-sortable').forEach(th => {
-        th.onclick = () => {
+        th.onclick = (e) => {
+          // Don't sort if clicking on resize handle
+          if (e.target.closest('.vg-resize-handle')) return;
+          
           const key = th.dataset.key;
           if (this.state.sortKey === key) {
             this.state.sortDir = this.state.sortDir === 'asc' ? 'desc' : 'asc';
@@ -427,6 +555,11 @@
           if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); th.click(); }
         };
       });
+      
+      // Column resize events
+      if (this.opts.resizableColumns) {
+        this._bindColumnResize();
+      }
     }
 
     _bindTableEvents() {
@@ -492,6 +625,223 @@
           }
         }
       });
+    }
+
+    // Column resize functionality
+    _bindColumnResize() {
+      this.theadEl.querySelectorAll('.vg-resize-handle').forEach(handle => {
+        handle.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          const columnKey = handle.dataset.columnKey;
+          const th = handle.closest('th');
+          const startX = e.clientX;
+          const startWidth = th.offsetWidth;
+          
+          const onMouseMove = (e) => {
+            const newWidth = Math.max(50, startWidth + (e.clientX - startX));
+            this.state.columnWidths.set(columnKey, newWidth);
+            th.style.width = newWidth + 'px';
+          };
+          
+          const onMouseUp = () => {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+            document.body.classList.remove('vg-resizing');
+          };
+          
+          document.addEventListener('mousemove', onMouseMove);
+          document.addEventListener('mouseup', onMouseUp);
+          document.body.classList.add('vg-resizing');
+        });
+      });
+    }
+
+    // Keyboard navigation functionality
+    _bindKeyboardNavigation() {
+      if (!this.opts.keyboardNavigation) return;
+      
+      this.tableEl.addEventListener('keydown', (e) => {
+        const cell = e.target.closest('td, th');
+        if (!cell) return;
+        
+        const row = cell.closest('tr');
+        const cells = Array.from(row.children);
+        const rows = Array.from(this.tbodyEl.children);
+        
+        let currentCellIndex = cells.indexOf(cell);
+        let currentRowIndex = rows.indexOf(row);
+        
+        switch (e.key) {
+          case 'ArrowRight':
+            e.preventDefault();
+            if (currentCellIndex < cells.length - 1) {
+              cells[currentCellIndex + 1].focus();
+            }
+            break;
+          case 'ArrowLeft':
+            e.preventDefault();
+            if (currentCellIndex > 0) {
+              cells[currentCellIndex - 1].focus();
+            }
+            break;
+          case 'ArrowDown':
+            e.preventDefault();
+            if (currentRowIndex < rows.length - 1) {
+              const nextRowCells = Array.from(rows[currentRowIndex + 1].children);
+              if (nextRowCells[currentCellIndex]) {
+                nextRowCells[currentCellIndex].focus();
+              }
+            }
+            break;
+          case 'ArrowUp':
+            e.preventDefault();
+            if (currentRowIndex > 0) {
+              const prevRowCells = Array.from(rows[currentRowIndex - 1].children);
+              if (prevRowCells[currentCellIndex]) {
+                prevRowCells[currentCellIndex].focus();
+              }
+            }
+            break;
+          case 'Enter':
+          case 'F2':
+            if (this.opts.editableRows) {
+              e.preventDefault();
+              this._startCellEdit(cell);
+            }
+            break;
+        }
+      });
+    }
+
+    // Inline editing functionality
+    _startCellEdit(cell) {
+      const row = cell.closest('tr');
+      const rowId = Number(row.dataset.rowid);
+      const columnKey = cell.dataset.columnKey;
+      const rowData = this.rowById.get(rowId);
+      
+      if (!rowData || !columnKey) return;
+      
+      const column = this.columns.find(c => c.key === columnKey);
+      if (!column || column.type === 'button' || column.type === 'image') return;
+      
+      this.state.editingCell = { rowId, columnKey };
+      
+      const currentValue = rowData[columnKey] || '';
+      const input = document.createElement('input');
+      input.type = column.type === 'number' ? 'number' : 'text';
+      input.value = currentValue;
+      input.className = 'vg-edit-input';
+      
+      cell.innerHTML = '';
+      cell.appendChild(input);
+      input.focus();
+      input.select();
+      
+      const finishEdit = (save = false) => {
+        const newValue = save ? input.value : currentValue;
+        if (save && newValue !== currentValue) {
+          const oldValue = rowData[columnKey];
+          rowData[columnKey] = column.type === 'number' ? Number(newValue) : newValue;
+          if (this.opts.onRowEdit) {
+            this.opts.onRowEdit(rowData, columnKey, newValue, oldValue);
+          }
+        }
+        this.state.editingCell = null;
+        this._renderBody();
+      };
+      
+      input.addEventListener('blur', () => finishEdit(true));
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          finishEdit(true);
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          finishEdit(false);
+        }
+      });
+    }
+
+    // Context menu functionality
+    _bindContextMenu() {
+      if (!this.opts.contextMenu) return;
+      
+      this.tableEl.addEventListener('contextmenu', (e) => {
+        const row = e.target.closest('tr[data-rowid]');
+        if (!row) return;
+        
+        e.preventDefault();
+        const rowId = Number(row.dataset.rowid);
+        const rowData = this.rowById.get(rowId);
+        
+        this._showContextMenu(e.clientX, e.clientY, rowData);
+      });
+    }
+
+    _showContextMenu(x, y, rowData) {
+      // Remove existing context menu
+      const existing = document.querySelector('.vg-context-menu');
+      if (existing) existing.remove();
+      
+      const menu = document.createElement('div');
+      menu.className = 'vg-context-menu';
+      menu.style.position = 'fixed';
+      menu.style.left = x + 'px';
+      menu.style.top = y + 'px';
+      menu.style.zIndex = '10000';
+      
+      const menuItems = [
+        { label: 'Copy Row', action: () => this._copyRowToClipboard(rowData) },
+        { label: 'Edit Row', action: () => console.log('Edit:', rowData) },
+        { label: 'Delete Row', action: () => this._deleteRow(rowData) }
+      ];
+      
+      menuItems.forEach(item => {
+        const menuItem = document.createElement('div');
+        menuItem.className = 'vg-context-menu-item';
+        menuItem.textContent = item.label;
+        menuItem.onclick = () => {
+          item.action();
+          menu.remove();
+        };
+        menu.appendChild(menuItem);
+      });
+      
+      document.body.appendChild(menu);
+      
+      // Close menu when clicking outside
+      const closeMenu = (e) => {
+        if (!menu.contains(e.target)) {
+          menu.remove();
+          document.removeEventListener('click', closeMenu);
+        }
+      };
+      setTimeout(() => document.addEventListener('click', closeMenu), 0);
+    }
+
+    _copyRowToClipboard(rowData) {
+      const text = this.columns.map(col => rowData[col.key] || '').join('\t');
+      navigator.clipboard?.writeText(text).catch(() => {
+        // Fallback for older browsers
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      });
+    }
+
+    _deleteRow(rowData) {
+      const index = this.data.findIndex(row => row === rowData);
+      if (index > -1) {
+        this.data.splice(index, 1);
+        this._renderBody();
+        this._renderPager();
+      }
     }
 
     _renderBody() {
@@ -741,6 +1091,8 @@
         const td = document.createElement('td');
         td.className = 'vg-td';
         td.dataset.key = col.key;
+        td.dataset.columnKey = col.key; // For editing support
+        td.tabIndex = this.opts.keyboardNavigation ? 0 : -1; // For keyboard navigation
         if (this.opts.tree.enabled && idx === 0) {
           td.classList.add('vg-tree-cell');
           const toggle = this._renderTreeToggle(row, meta);
@@ -822,14 +1174,70 @@
           td.appendChild(btn);
           break;
         }
-        default: { // text (safe)
-          const txt = (typeof col.format === 'function') ? col.format(value, row) : (value ?? '');
-          if (hasToggle) {
-            const span = document.createElement('span');
-            span.textContent = txt;
-            td.appendChild(span);
+        case 'progress': {
+          const percent = Math.max(0, Math.min(100, Number(value) || 0));
+          const progressContainer = document.createElement('div');
+          progressContainer.className = 'vg-progress';
+          
+          const progressBar = document.createElement('div');
+          progressBar.className = 'vg-progress-bar';
+          progressBar.style.width = percent + '%';
+          
+          const progressText = document.createElement('span');
+          progressText.className = 'vg-progress-text';
+          progressText.textContent = percent + '%';
+          
+          progressContainer.appendChild(progressBar);
+          progressContainer.appendChild(progressText);
+          td.appendChild(progressContainer);
+          break;
+        }
+        case 'rating': {
+          const rating = Math.max(0, Math.min(5, Number(value) || 0));
+          const ratingSpan = document.createElement('span');
+          ratingSpan.className = 'vg-rating';
+          ratingSpan.title = rating + '/5';
+          ratingSpan.textContent = '★'.repeat(Math.floor(rating)) + '☆'.repeat(5 - Math.floor(rating));
+          td.appendChild(ratingSpan);
+          break;
+        }
+        case 'badge': {
+          const badgeClass = row[col.key + '_class'] || 'default';
+          const badge = document.createElement('span');
+          badge.className = `vg-badge vg-badge-${badgeClass}`;
+          badge.textContent = value || '';
+          td.appendChild(badge);
+          break;
+        }
+        case 'color': {
+          const colorDiv = document.createElement('div');
+          colorDiv.className = 'vg-color-indicator';
+          colorDiv.style.backgroundColor = value || '';
+          colorDiv.title = value || '';
+          td.appendChild(colorDiv);
+          break;
+        }
+        default: {
+          // Check for custom cell types
+          if (this.opts.customCellTypes[type]) {
+            const customHtml = this.opts.customCellTypes[type](value, col, row);
+            if (hasToggle) {
+              const span = document.createElement('span');
+              span.innerHTML = customHtml;
+              td.appendChild(span);
+            } else {
+              td.innerHTML = customHtml;
+            }
           } else {
-            td.textContent = txt;
+            // text (safe)
+            const txt = (typeof col.format === 'function') ? col.format(value, row) : (value ?? '');
+            if (hasToggle) {
+              const span = document.createElement('span');
+              span.textContent = txt;
+              td.appendChild(span);
+            } else {
+              td.textContent = txt;
+            }
           }
         }
       }

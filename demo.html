@@ -48,6 +48,15 @@
   <p style="color:#6b7280;margin:0 0 8px 0;">This demo combines tree hierarchy (Warehouse → Aisle → Bin → SKU), client grouping, export, sorting, filtering (text/regex), aggregates, buttons, and badges.</p>
   <div id="wms-grid"></div>
 
+  <h2 style="font-family:system-ui;margin:24px 0 8px;">🆕 New Features Demo</h2>
+  <p style="color:#6b7280;margin:0 0 8px 0;">Showcasing column resizing, inline editing, enhanced cell types (progress bars, ratings, color indicators), keyboard navigation, and context menus.</p>
+  <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
+    <button id="btn-add-row" style="padding:6px 10px; border:1px solid #e5e7eb; border-radius:8px; background:#fff; cursor:pointer;">Add Random Row</button>
+    <button id="btn-reset-columns" style="padding:6px 10px; border:1px solid #e5e7eb; border-radius:8px; background:#fff; cursor:pointer;">Reset Column Widths</button>
+    <span style="color:#6b7280;">Try: Drag column borders to resize • Double-click cells to edit • Right-click rows for context menu • Use arrow keys to navigate</span>
+  </div>
+  <div id="enhanced-grid"></div>
+
   <script>
     // Theme / Density toggles
     const applyThemeDensity = () => {
@@ -270,6 +279,84 @@
     exporting: { enabled: true, formats: ['csv','md'], scope: 'page', filename: 'wms-stock' },
   });
   window.wmsGrid = wmsGrid;
+
+  // Enhanced Features Demo
+  const enhancedData = [
+    { id: 1, name: 'Project Alpha', progress: 75, rating: 4.2, status: 'In Progress', status_class: 'info', priority: 'High', priority_class: 'warning', color: '#ff6b6b', score: 85 },
+    { id: 2, name: 'Project Beta', progress: 45, rating: 3.8, status: 'Planning', status_class: 'default', priority: 'Medium', priority_class: 'info', color: '#4ecdc4', score: 72 },
+    { id: 3, name: 'Project Gamma', progress: 90, rating: 4.7, status: 'Review', status_class: 'warning', priority: 'High', priority_class: 'warning', color: '#45b7d1', score: 94 },
+    { id: 4, name: 'Project Delta', progress: 100, rating: 5.0, status: 'Complete', status_class: 'success', priority: 'Low', priority_class: 'default', color: '#96ceb4', score: 98 },
+    { id: 5, name: 'Project Epsilon', progress: 25, rating: 2.9, status: 'At Risk', status_class: 'error', priority: 'Critical', priority_class: 'error', color: '#ffeaa7', score: 45 },
+  ];
+
+  const enhancedGrid = new VanillaGrid('#enhanced-grid', {
+    data: enhancedData,
+    pageSize: 10,
+    resizableColumns: true,
+    editableRows: true,
+    keyboardNavigation: true,
+    contextMenu: true,
+    onRowEdit: (row, field, newValue, oldValue) => {
+      console.log(`Edited ${field}: ${oldValue} → ${newValue}`, row);
+    },
+    columns: [
+      { key: 'name', label: 'Project Name', sortable: true },
+      { key: 'progress', label: 'Progress', type: 'progress', sortable: true },
+      { key: 'rating', label: 'Rating', type: 'rating', sortable: true },
+      { key: 'status', label: 'Status', type: 'badge', sortable: true },
+      { key: 'priority', label: 'Priority', type: 'badge', sortable: true },
+      { key: 'color', label: 'Theme', type: 'color', sortable: false },
+      { key: 'score', label: 'Score', type: 'number', sortable: true, format: (v) => v + '%' },
+      { key: 'actions', label: 'Actions', type: 'button', button: {
+        text: 'View Details',
+        onClick: (row) => alert(`Viewing details for: ${row.name}`)
+      }, sortable: false, filterable: false },
+    ],
+  });
+
+  // Enhanced grid controls
+  document.getElementById('btn-add-row').onclick = () => {
+    const projectNames = ['Zeta', 'Eta', 'Theta', 'Iota', 'Kappa', 'Lambda'];
+    const statuses = [
+      { label: 'Planning', class: 'default' },
+      { label: 'In Progress', class: 'info' },
+      { label: 'Review', class: 'warning' },
+      { label: 'Complete', class: 'success' },
+      { label: 'At Risk', class: 'error' }
+    ];
+    const priorities = [
+      { label: 'Low', class: 'default' },
+      { label: 'Medium', class: 'info' },
+      { label: 'High', class: 'warning' },
+      { label: 'Critical', class: 'error' }
+    ];
+    const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffeaa7', '#dda0dd'];
+    
+    const randomItem = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    const randomStatus = randomItem(statuses);
+    const randomPriority = randomItem(priorities);
+    
+    const newRow = {
+      id: Date.now(),
+      name: `Project ${randomItem(projectNames)}`,
+      progress: Math.floor(Math.random() * 100),
+      rating: +(Math.random() * 2 + 3).toFixed(1),
+      status: randomStatus.label,
+      status_class: randomStatus.class,
+      priority: randomPriority.label,
+      priority_class: randomPriority.class,
+      color: randomItem(colors),
+      score: Math.floor(Math.random() * 50 + 50)
+    };
+    
+    enhancedGrid.addRow(newRow);
+  };
+
+  document.getElementById('btn-reset-columns').onclick = () => {
+    enhancedGrid.resetColumnWidths();
+  };
+
+  window.enhancedGrid = enhancedGrid;
   </script>
 </body>
 </html>
