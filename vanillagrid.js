@@ -348,6 +348,7 @@
         rows: config.rows || [],
         columns: config.columns || [],
         values: config.values || [],
+        filters: config.filters || [],
         aggregations: config.aggregations || {}
       };
       
@@ -386,6 +387,7 @@
       
       Object.assign(this.opts.pivotConfig, config);
       this._generatePivotTable();
+      this._updatePivotFieldLists(); // Update UI to show the fields
       this._renderHeader();
       this._renderBody();
       
@@ -2167,16 +2169,48 @@
           zone.classList.remove('vg-drop-active');
           
           const field = e.dataTransfer.getData('text/plain');
+          const sourceType = e.dataTransfer.getData('source-type');
           const type = zone.dataset.type;
           
-          if (field && type && !this.opts.pivotConfig[type].includes(field)) {
-            this.opts.pivotConfig[type].push(field);
-            
-            if (type === 'values' && !this.opts.pivotConfig.aggregations[field]) {
-              this.opts.pivotConfig.aggregations[field] = 'sum';
+          if (field && type) {
+            // Ensure pivot config is properly initialized
+            if (!this.opts.pivotConfig) {
+              this.opts.pivotConfig = {
+                rows: [],
+                columns: [],
+                values: [],
+                filters: [],
+                aggregations: {}
+              };
             }
             
-            this.updatePivotConfig(this.opts.pivotConfig);
+            // Ensure the specific type array exists
+            if (!this.opts.pivotConfig[type]) {
+              this.opts.pivotConfig[type] = [];
+            }
+            
+            // If moving from another zone, remove from source
+            if (sourceType && sourceType !== type && this.opts.pivotConfig[sourceType]) {
+              const sourceIndex = this.opts.pivotConfig[sourceType].indexOf(field);
+              if (sourceIndex > -1) {
+                this.opts.pivotConfig[sourceType].splice(sourceIndex, 1);
+                if (sourceType === 'values') {
+                  delete this.opts.pivotConfig.aggregations[field];
+                }
+              }
+            }
+            
+            // Add field if not already present in target zone
+            if (!this.opts.pivotConfig[type].includes(field)) {
+              this.opts.pivotConfig[type].push(field);
+              
+              if (type === 'values' && !this.opts.pivotConfig.aggregations[field]) {
+                this.opts.pivotConfig.aggregations[field] = 'sum';
+              }
+              
+              this._updatePivotFieldLists();
+              this.updatePivotConfig(this.opts.pivotConfig);
+            }
           }
         });
       });
@@ -2406,25 +2440,57 @@
     }
     
     exportPivotData() {
-      const pivotData = this.generatePivotTable();
+      // Use the current data which contains the pivot table rows
+      const pivotData = this.opts.pivotMode ? this.data : this.data;
+      
+      if (!pivotData || !pivotData.length) {
+        console.warn('No data available for export');
+        alert('No data available for export. Please configure your pivot table first.');
+        return;
+      }
+      
+      console.log('Exporting pivot data:', pivotData.length, 'rows');
       const csvContent = this.convertToCSV(pivotData);
+      
+      if (!csvContent) {
+        console.warn('CSV conversion failed');
+        alert('Failed to convert data to CSV format.');
+        return;
+      }
+      
       this.downloadCSV(csvContent, 'pivot-table.csv');
     }
     
     convertToCSV(data) {
-      if (!data.length) return '';
+      if (!data || !data.length) {
+        console.warn('ConvertToCSV: No data provided');
+        return '';
+      }
       
-      const headers = Object.keys(data[0]);
+      console.log('Converting to CSV:', data.length, 'rows');
+      
+      // Get headers from the first row
+      const firstRow = data[0];
+      if (!firstRow || typeof firstRow !== 'object') {
+        console.warn('ConvertToCSV: Invalid data format');
+        return '';
+      }
+      
+      const headers = Object.keys(firstRow);
       const csvRows = [headers.join(',')];
       
-      data.forEach(row => {
+      data.forEach((row, index) => {
         const values = headers.map(header => {
           const value = row[header];
+          if (value === null || value === undefined) {
+            return '';
+          }
           return typeof value === 'string' ? `"${value.replace(/"/g, '""')}"` : value;
         });
         csvRows.push(values.join(','));
       });
       
+      console.log('CSV generated:', csvRows.length, 'lines');
       return csvRows.join('\n');
     }
     
