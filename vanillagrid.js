@@ -35,6 +35,12 @@
           noGroup: 'No group',
           groupByPrefix: 'Group by',
           perPageSuffix: ' / page',
+          search: {
+            simple: 'Simple',
+            caseSensitive: 'Case-sensitive',
+            regex: 'RegExp',
+            treeFilter: 'Tree/Filter'
+          },
           pager: {
             pageInfo: (p, t) => `Page ${p} of ${t}`,
             prev: 'Previous page',
@@ -116,7 +122,10 @@
         sortKey: null,
         sortDir: 'asc',
         filter: '',
+        filterMode: 'simple', // 'simple' | 'case-sensitive' | 'regex' | 'tree'
         regexMode: !!this.opts.regexFilter,
+        caseSensitive: false,
+        treeFilterExpanded: new Set(), // for tree filter navigation
         page: 1,
         pageSize: this.opts.pageSize,
         groupBy: this.opts.groupBy,
@@ -175,6 +184,7 @@
     setFilter(text, options = {}) {
       this.state.filter = text ?? '';
       if (options.regexMode != null) this.state.regexMode = !!options.regexMode;
+      if (options.caseSensitive != null) this.state.caseSensitive = !!options.caseSensitive;
       this.state.page = 1;
   this._updateFilterError();
       if (this._shouldRemoteFetch('filter')) {
@@ -489,11 +499,27 @@
           ${filterable ? `
           <div class="vg-filter">
             <input type="text" class="vg-filter-input" placeholder="${this._escAttr(i18n.filterPlaceholder)}" value="${this._escAttr(this.state.filter)}" aria-label="${this._escAttr(i18n.filterPlaceholder)}" />
-            <label class="vg-regex">
-              <input type="checkbox" class="vg-filter-regex" ${this.state.regexMode ? 'checked':''} />
-              ${this._esc(i18n.regexLabel)}
-            </label>
+            <div class="vg-filter-mode">
+              <div class="vg-filter-mode-btn" aria-label="Filter mode">
+                <span class="vg-filter-mode-current">${this._esc(i18n.search[this.state.filterMode])}</span>
+              </div>
+              <div class="vg-filter-mode-dropdown">
+                <div class="vg-filter-mode-option ${this.state.filterMode === 'simple' ? 'active' : ''}" data-mode="simple">
+                  ${this._esc(i18n.search.simple)}
+                </div>
+                <div class="vg-filter-mode-option ${this.state.filterMode === 'case-sensitive' ? 'active' : ''}" data-mode="case-sensitive">
+                  ${this._esc(i18n.search.caseSensitive)}
+                </div>
+                <div class="vg-filter-mode-option ${this.state.filterMode === 'regex' ? 'active' : ''}" data-mode="regex">
+                  ${this._esc(i18n.search.regex)}
+                </div>
+                <div class="vg-filter-mode-option ${this.state.filterMode === 'tree' ? 'active' : ''}" data-mode="tree">
+                  ${this._esc(i18n.search.treeFilter)}
+                </div>
+              </div>
+            </div>
             ${this.state.regexError ? `<span class="vg-error" title="${this._escAttr(this.state.regexError)}">${this._esc(i18n.invalidRegex)}</span>` : ''}
+            ${this.state.filterMode === 'tree' ? this._renderTreeFilter() : ''}
           </div>` : ''}
           ${groupable ? `
           <div class="vg-groupby">
@@ -508,22 +534,162 @@
 
       // Events
       const input = this.toolbarEl.querySelector('.vg-filter-input');
-      const chk = this.toolbarEl.querySelector('.vg-filter-regex');
-  const selGroup = this.toolbarEl.querySelector('.vg-group-select');
-  // page size select moved to pager
-  const btnExport = this.toolbarEl.querySelector('.vg-export-btn');
-  const selExportFmt = this.toolbarEl.querySelector('.vg-export-format');
-  // column toggles may be in toolbar depending on config
+      const modeBtn = this.toolbarEl.querySelector('.vg-filter-mode-btn');
+      const modeDropdown = this.toolbarEl.querySelector('.vg-filter-mode');
+      const selGroup = this.toolbarEl.querySelector('.vg-group-select');
+      // page size select moved to pager
+      const btnExport = this.toolbarEl.querySelector('.vg-export-btn');
+      const selExportFmt = this.toolbarEl.querySelector('.vg-export-format');
+      // column toggles may be in toolbar depending on config
 
       if (input) {
         input.oninput = () => {
-          this.setFilter(input.value, { regexMode: this.state.regexMode });
+          // Add typing animation
+          input.style.transform = 'scale(1.02)';
+          setTimeout(() => {
+            input.style.transform = '';
+          }, 100);
+          
+          this._applyFilter();
+        };
+        
+        // Enhanced keyboard navigation
+        input.onkeydown = (e) => {
+          switch (e.key) {
+            case 'Escape':
+              input.value = '';
+              this._applyFilter();
+              break;
+            case 'ArrowDown':
+              if (this.state.filterMode === 'tree') {
+                e.preventDefault();
+                const treePanel = this.toolbarEl.querySelector('.vg-tree-filter-panel');
+                if (treePanel && treePanel.classList.contains('show')) {
+                  const firstColumn = treePanel.querySelector('.vg-tree-filter-column-name');
+                  if (firstColumn) firstColumn.focus();
+                }
+              }
+              break;
+            case 'F3':
+            case 'Enter':
+              if (e.ctrlKey || e.metaKey) {
+                // Cycle through search modes
+                e.preventDefault();
+                const modes = ['simple', 'case-sensitive', 'regex', 'tree'];
+                const currentIndex = modes.indexOf(this.state.filterMode);
+                const nextMode = modes[(currentIndex + 1) % modes.length];
+                this.state.filterMode = nextMode;
+                this.state.regexMode = nextMode === 'regex';
+                this._renderToolbar();
+                this._applyFilter();
+              }
+              break;
+          }
+        };
+        
+        // Add search suggestions on focus (for tree mode)
+        input.onfocus = () => {
+          if (this.state.filterMode === 'tree' && !input.value) {
+            // Show tree panel on focus if in tree mode
+            setTimeout(() => this._renderToolbar(), 100);
+          }
         };
       }
-      if (chk) {
-        chk.onchange = () => {
-          this.setFilter(this.state.filter, { regexMode: chk.checked });
+      
+      if (modeBtn && modeDropdown) {
+        // Toggle dropdown
+        modeBtn.onclick = (e) => {
+          e.stopPropagation();
+          const isOpen = modeDropdown.classList.contains('open');
+          
+          // Close all other open dropdowns first
+          document.querySelectorAll('.vg-filter-mode.open').forEach(d => {
+            if (d !== modeDropdown) d.classList.remove('open');
+          });
+          
+          modeDropdown.classList.toggle('open');
+          
+          // Focus first option when opening
+          if (!isOpen) {
+            setTimeout(() => {
+              const firstOption = modeDropdown.querySelector('.vg-filter-mode-option');
+              if (firstOption) firstOption.focus();
+            }, 100);
+          }
         };
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+          if (!modeDropdown.contains(e.target)) {
+            modeDropdown.classList.remove('open');
+          }
+        });
+        
+        // Keyboard navigation for dropdown
+        modeDropdown.addEventListener('keydown', (e) => {
+          const options = modeDropdown.querySelectorAll('.vg-filter-mode-option');
+          const currentIndex = Array.from(options).findIndex(o => o === document.activeElement);
+          
+          switch (e.key) {
+            case 'ArrowDown':
+              e.preventDefault();
+              const nextIndex = (currentIndex + 1) % options.length;
+              options[nextIndex].focus();
+              break;
+            case 'ArrowUp':
+              e.preventDefault();
+              const prevIndex = (currentIndex - 1 + options.length) % options.length;
+              options[prevIndex].focus();
+              break;
+            case 'Enter':
+            case ' ':
+              e.preventDefault();
+              if (document.activeElement.classList.contains('vg-filter-mode-option')) {
+                document.activeElement.click();
+              }
+              break;
+            case 'Escape':
+              modeDropdown.classList.remove('open');
+              modeBtn.focus();
+              break;
+          }
+        });
+        
+        // Handle mode selection
+        modeDropdown.addEventListener('click', (e) => {
+          const option = e.target.closest('.vg-filter-mode-option');
+          if (option) {
+            e.stopPropagation();
+            const newMode = option.dataset.mode;
+            
+            // Add selection animation
+            option.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+              option.style.transform = '';
+            }, 150);
+            
+            this.state.filterMode = newMode;
+            if (newMode === 'regex') {
+              this.state.regexMode = true;
+            } else {
+              this.state.regexMode = false;
+            }
+            modeDropdown.classList.remove('open');
+            this._renderToolbar();
+            this._applyFilter();
+            
+            // Focus back to input
+            setTimeout(() => {
+              const input = this.toolbarEl.querySelector('.vg-filter-input');
+              if (input) input.focus();
+            }, 100);
+          }
+        });
+        
+        // Make options focusable
+        modeDropdown.querySelectorAll('.vg-filter-mode-option').forEach(option => {
+          option.setAttribute('tabindex', '0');
+        });
       }
       if (selGroup) {
         selGroup.onchange = () => {
@@ -544,6 +710,136 @@
       }
       // bind column toggles if present in toolbar
       if (renderColumnsHere) this._bindColumnsMenuEvents(this.toolbarEl);
+      
+      // bind tree filter events if present
+      this._bindTreeFilterEvents();
+    }
+
+    _applyFilter() {
+      const input = this.toolbarEl.querySelector('.vg-filter-input');
+      if (!input) return;
+      
+      const filterText = input.value;
+      const mode = this.state.filterMode;
+      
+      if (mode === 'regex') {
+        this.setFilter(filterText, { regexMode: true });
+      } else if (mode === 'tree') {
+        // Tree filter uses different logic
+        this.state.filter = filterText;
+        this.state.page = 1;
+        this._renderBody();
+        this._renderPager();
+      } else {
+        // simple or case-sensitive
+        this.setFilter(filterText, { regexMode: false, caseSensitive: mode === 'case-sensitive' });
+      }
+    }
+
+    _renderTreeFilter() {
+      if (this.state.filterMode !== 'tree') return '';
+      
+      const columnStats = this._getColumnValueStats();
+      const tree = Object.entries(columnStats)
+        .filter(([colKey, values]) => {
+          // Hide columns where all values are unique (count = 1 for all values)
+          const valueCounts = Object.values(values);
+          const hasNonUniqueValues = valueCounts.some(count => count > 1);
+          return hasNonUniqueValues;
+        })
+        .map(([colKey, values]) => {
+          const col = this.columns.find(c => c.key === colKey);
+          const label = col ? (col.label || col.key) : colKey;
+          const isExpanded = this.state.treeFilterExpanded.has(colKey);
+          
+          const valueItems = Object.entries(values)
+            .filter(([, count]) => count > 1) // Only show values that appear more than once
+            .sort(([,a], [,b]) => b - a) // sort by count descending
+            .slice(0, 10) // limit to top 10
+            .map(([value, count]) => 
+              `<div class="vg-tree-filter-value" data-column="${colKey}" data-value="${this._escAttr(value)}">
+                <span class="vg-tree-filter-value-text">${this._esc(String(value))}</span>
+                <span class="vg-tree-filter-value-count">${count}</span>
+              </div>`
+            ).join('');
+          
+          return `<div class="vg-tree-filter-column ${isExpanded ? 'expanded' : ''}">
+            <div class="vg-tree-filter-column-name" data-column="${colKey}">
+              ${this._esc(label)}
+            </div>
+            <div class="vg-tree-filter-values">${valueItems}</div>
+          </div>`;
+        }).join('');
+      
+      return `<div class="vg-tree-filter-panel show">
+        <div class="vg-tree-filter-header">Explore Data by Column Values</div>
+        ${tree}
+      </div>`;
+    }
+
+    _getColumnValueStats() {
+      const stats = {};
+      
+      this.columns.forEach(col => {
+        stats[col.key] = {};
+      });
+      
+      this.data.forEach(row => {
+        this.columns.forEach(col => {
+          const value = row[col.key];
+          const key = String(value || '(empty)');
+          if (!stats[col.key][key]) stats[col.key][key] = 0;
+          stats[col.key][key]++;
+        });
+      });
+      
+      return stats;
+    }
+
+    _bindTreeFilterEvents() {
+      if (!this.toolbarEl) return;
+      
+      // Column expand/collapse
+      this.toolbarEl.addEventListener('click', (e) => {
+        if (e.target.closest('.vg-tree-filter-column-name')) {
+          const header = e.target.closest('.vg-tree-filter-column-name');
+          const column = header.dataset.column;
+          const columnDiv = header.closest('.vg-tree-filter-column');
+          
+          if (this.state.treeFilterExpanded.has(column)) {
+            this.state.treeFilterExpanded.delete(column);
+            columnDiv.classList.remove('expanded');
+          } else {
+            this.state.treeFilterExpanded.add(column);
+            columnDiv.classList.add('expanded');
+          }
+        }
+        
+        // Value click
+        if (e.target.closest('.vg-tree-filter-value')) {
+          const valueEl = e.target.closest('.vg-tree-filter-value');
+          const column = valueEl.dataset.column;
+          const value = valueEl.dataset.value;
+          
+          const input = this.toolbarEl.querySelector('.vg-filter-input');
+          if (input) {
+            input.value = `${column}:"${value}"`;
+            this._applyFilter();
+            
+            // Close tree filter panel but keep tree mode active
+            const treePanel = this.toolbarEl.querySelector('.vg-tree-filter-panel');
+            if (treePanel) {
+              treePanel.classList.remove('show');
+            }
+            
+            // Focus back to input for immediate editing
+            setTimeout(() => {
+              input.focus();
+              input.setSelectionRange(input.value.length, input.value.length);
+            }, 100);
+          }
+        }
+      });
     }
 
     _columnsMenuConfig() {
@@ -1768,18 +2064,38 @@
       // Filter
       const f = String(this.state.filter || '');
       if (f) {
-        if (this.state.regexMode) {
+        if (this.state.filterMode === 'tree') {
+          // Tree filter with column:value syntax
+          this.state.regexError = '';
+          const match = f.match(/^(\w+):"(.+)"$/);
+          if (match) {
+            const [, column, value] = match;
+            rows = rows.filter(r => String(r[column] || '') === value);
+          } else {
+            // Fallback to simple search
+            const needle = this.state.caseSensitive ? f : f.toLowerCase();
+            rows = rows.filter(r => this.columns.some(c => {
+              const text = this.state.caseSensitive ? this._cellText(r, c) : this._cellText(r, c).toLowerCase();
+              return text.includes(needle);
+            }));
+          }
+        } else if (this.state.regexMode || this.state.filterMode === 'regex') {
           try {
-            const rx = new RegExp(f, 'i');
+            const flags = this.state.caseSensitive || this.state.filterMode === 'case-sensitive' ? '' : 'i';
+            const rx = new RegExp(f, flags);
             this.state.regexError = '';
             rows = rows.filter(r => this.columns.some(c => rx.test(this._cellText(r, c))));
           } catch (err) {
             this.state.regexError = String(err?.message || 'Invalid RegExp');
           }
         } else {
+          // Simple or case-sensitive
           this.state.regexError = '';
-          const needle = f.toLowerCase();
-          rows = rows.filter(r => this.columns.some(c => this._cellText(r, c).toLowerCase().includes(needle)));
+          const needle = (this.state.caseSensitive || this.state.filterMode === 'case-sensitive') ? f : f.toLowerCase();
+          rows = rows.filter(r => this.columns.some(c => {
+            const text = (this.state.caseSensitive || this.state.filterMode === 'case-sensitive') ? this._cellText(r, c) : this._cellText(r, c).toLowerCase();
+            return text.includes(needle);
+          }));
         }
   this._updateFilterError(); // show/hide regex error state without full re-render
       }

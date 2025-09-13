@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VanillaGrid - Enhanced Search Complete Test</title>
+    <link rel="stylesheet" href="../vanillagrid.css">
+    <style>
+        body {
+            font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+            margin: 20px;
+            background: #f8f9fa;
+        }
+        .demo-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .demo-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px;
+        }
+        .demo-title {
+            margin: 0 0 10px 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .demo-subtitle {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 16px;
+        }
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .feature-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+        .feature-card h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .feature-card p {
+            margin: 0 0 10px 0;
+            color: #666;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .feature-example {
+            background: #e3f2fd;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 12px;
+            color: #1976d2;
+        }
+        .test-instructions {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .test-instructions h3 {
+            margin: 0 0 15px 0;
+            color: #856404;
+        }
+        .test-steps {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .test-steps li {
+            margin-bottom: 8px;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="demo-header">
+            <h1 class="demo-title">🔍 Enhanced Search System</h1>
+            <p class="demo-subtitle">Powerful data exploration with multiple search modes and tree navigation</p>
+        </div>
+        
+        <div class="features-grid">
+            <div class="feature-card">
+                <h4>📝 Simple Search</h4>
+                <p>Case-insensitive text matching across all columns. Perfect for quick data lookup.</p>
+                <div class="feature-example">Example: "john" → finds John, johnny, Johnson</div>
+            </div>
+            
+            <div class="feature-card">
+                <h4>🔤 Case-Sensitive</h4>
+                <p>Exact case matching for precise searches when case matters.</p>
+                <div class="feature-example">Example: "John" → finds only exact "John"</div>
+            </div>
+            
+            <div class="feature-card">
+                <h4>🔍 Regex Patterns</h4>
+                <p>Advanced pattern matching with regular expressions for complex queries.</p>
+                <div class="feature-example">Example: "john|jane" → finds either name</div>
+            </div>
+            
+            <div class="feature-card">
+                <h4>🌳 Tree Navigation</h4>
+                <p>Interactive data exploration by column values with statistics and filtering.</p>
+                <div class="feature-example">Example: department:"Engineering"</div>
+            </div>
+        </div>
+
+        <div class="test-instructions">
+            <h3>🧪 Test Instructions:</h3>
+            <ol class="test-steps">
+                <li><strong>Dropdown Test:</strong> Click the dropdown button next to the search box</li>
+                <li><strong>Mode Selection:</strong> Try switching between different search modes</li>
+                <li><strong>Tree Mode:</strong> Select "Tree/Filter" to see the data exploration panel</li>
+                <li><strong>Column Expansion:</strong> Click column names to view their unique values</li>
+                <li><strong>Value Filtering:</strong> Click on specific values to filter the data</li>
+                <li><strong>Search Examples:</strong> Try the example queries shown above</li>
+            </ol>
+        </div>
+
+        <div id="grid"></div>
+    </div>
+
+    <script src="../vanillagrid.js"></script>
+    <script>
+        // Comprehensive test data with diverse content
+        const testData = [
+            { id: 1, name: "John Doe", email: "john@acme.com", city: "New York", department: "Engineering", salary: 95000, status: "Active", joinDate: "2023-01-15" },
+            { id: 2, name: "Jane Smith", email: "jane@techcorp.com", city: "Los Angeles", department: "Marketing", salary: 75000, status: "Active", joinDate: "2023-02-20" },
+            { id: 3, name: "Bob Johnson", email: "bob@startup.io", city: "Chicago", department: "Engineering", salary: 88000, status: "Inactive", joinDate: "2022-11-10" },
+            { id: 4, name: "Alice Brown", email: "alice@bigcorp.com", city: "Boston", department: "Sales", salary: 82000, status: "Active", joinDate: "2023-03-05" },
+            { id: 5, name: "Charlie Wilson", email: "charlie@acme.com", city: "Seattle", department: "Engineering", salary: 92000, status: "Active", joinDate: "2023-01-28" },
+            { id: 6, name: "Diana Lee", email: "diana@techcorp.com", city: "San Francisco", department: "Marketing", salary: 78000, status: "Active", joinDate: "2023-04-12" },
+            { id: 7, name: "Frank Miller", email: "frank@startup.io", city: "Denver", department: "Sales", salary: 71000, status: "Inactive", joinDate: "2022-09-18" },
+            { id: 8, name: "Grace Davis", email: "grace@bigcorp.com", city: "Miami", department: "Engineering", salary: 86000, status: "Active", joinDate: "2023-02-14" },
+            { id: 9, name: "Henry Taylor", email: "henry@acme.com", city: "Austin", department: "Marketing", salary: 73000, status: "Active", joinDate: "2023-03-22" },
+            { id: 10, name: "Ivy Chen", email: "ivy@techcorp.com", city: "Portland", department: "Sales", salary: 79000, status: "Active", joinDate: "2023-01-08" },
+            { id: 11, name: "Jack Anderson", email: "jack@startup.io", city: "Phoenix", department: "Engineering", salary: 90000, status: "Inactive", joinDate: "2022-12-03" },
+            { id: 12, name: "Kate Williams", email: "kate@bigcorp.com", city: "Las Vegas", department: "Marketing", salary: 76000, status: "Active", joinDate: "2023-04-05" },
+            { id: 13, name: "Liam Garcia", email: "liam@acme.com", city: "Nashville", department: "Sales", salary: 81000, status: "Active", joinDate: "2023-02-28" },
+            { id: 14, name: "Mia Rodriguez", email: "mia@techcorp.com", city: "Orlando", department: "Engineering", salary: 87000, status: "Active", joinDate: "2023-03-15" },
+            { id: 15, name: "Noah Martinez", email: "noah@startup.io", city: "Tampa", department: "Marketing", salary: 72000, status: "Inactive", joinDate: "2022-10-20" },
+            { id: 16, name: "Olivia Thompson", email: "olivia@bigcorp.com", city: "Atlanta", department: "Sales", salary: 83000, status: "Active", joinDate: "2023-01-12" },
+            { id: 17, name: "Paul White", email: "paul@acme.com", city: "Minneapolis", department: "Engineering", salary: 94000, status: "Active", joinDate: "2023-04-18" },
+            { id: 18, name: "Quinn Jackson", email: "quinn@techcorp.com", city: "Dallas", department: "Marketing", salary: 77000, status: "Active", joinDate: "2023-02-08" }
+        ];
+
+        // Initialize VanillaGrid with enhanced search
+        try {
+            const grid = new VanillaGrid('#grid', {
+                data: testData,
+                columns: [
+                    { key: 'id', label: 'ID', width: 50, sortable: true },
+                    { key: 'name', label: 'Name', width: 140, sortable: true },
+                    { key: 'email', label: 'Email', width: 180, sortable: true },
+                    { key: 'city', label: 'City', width: 120, sortable: true },
+                    { key: 'department', label: 'Department', width: 120, sortable: true },
+                    { key: 'salary', label: 'Salary', width: 100, sortable: true, 
+                      formatter: (val) => '$' + val.toLocaleString() },
+                    { key: 'status', label: 'Status', width: 80, sortable: true },
+                    { key: 'joinDate', label: 'Join Date', width: 110, sortable: true }
+                ],
+                filterable: true,
+                paginated: true,
+                pageSize: 12,
+                sortable: true,
+                exportable: true,
+                columnsMenu: { 
+                    location: 'pager', 
+                    showSearch: true, 
+                    showSelectAll: true 
+                }
+            });
+
+            console.log('✅ VanillaGrid Enhanced Search Test Ready!');
+            console.log('🎯 Available test scenarios:');
+            console.log('  • Simple: "john" (case-insensitive search)');
+            console.log('  • Case-Sensitive: "John" vs "john"');
+            console.log('  • Regex: "john|jane|bob" (multiple names)');
+            console.log('  • Regex: "\\d{4}" (4-digit patterns like years)');
+            console.log('  • Tree: Explore by department, city, status, etc.');
+            console.log('  • Tree: Click values to auto-generate filters');
+
+            // Test dropdown visibility
+            setTimeout(() => {
+                const dropdown = document.querySelector('.vg-filter-mode');
+                const button = document.querySelector('.vg-filter-mode-btn');
+                
+                if (dropdown && button) {
+                    console.log('✅ Enhanced search dropdown is ready');
+                } else {
+                    console.warn('⚠️  Search dropdown not found - check implementation');
+                }
+            }, 100);
+
+        } catch (error) {
+            console.error('❌ Grid initialization failed:', error);
+        }
+    </script>
+</body>
+</html>

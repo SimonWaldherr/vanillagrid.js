@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VanillaGrid - Tree Filter Fix Test</title>
+    <link rel="stylesheet" href="../vanillagrid.css">
+    <style>
+        body {
+            font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+            margin: 20px;
+            background: #f8f9fa;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .test-info {
+            background: #e8f5e8;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4caf50;
+        }
+        .test-info h3 {
+            margin: 0 0 10px 0;
+            color: #2e7d32;
+        }
+        .test-info p {
+            margin: 0;
+            color: #2e7d32;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔧 Tree Filter Fix Test</h1>
+        
+        <div class="test-info">
+            <h3>✅ Fixed Issues:</h3>
+            <p>1. Tree filter values now properly show/hide when columns are expanded<br>
+            2. Search field and dropdown are connected without gaps<br>
+            3. Emojis removed from dropdown options<br>
+            4. Better visual connection between input and dropdown</p>
+        </div>
+        
+        <div id="grid"></div>
+    </div>
+
+    <script src="../vanillagrid.js"></script>
+    <script>
+        // Test data for tree filter functionality
+        const testData = [
+            { id: 1, name: "Alice", department: "Engineering", city: "Berlin", status: "Active" },
+            { id: 2, name: "Bob", department: "Marketing", city: "Munich", status: "Active" },
+            { id: 3, name: "Charlie", department: "Engineering", city: "Hamburg", status: "Inactive" },
+            { id: 4, name: "Diana", department: "Sales", city: "Berlin", status: "Active" },
+            { id: 5, name: "Eve", department: "Engineering", city: "Munich", status: "Active" },
+            { id: 6, name: "Frank", department: "Marketing", city: "Berlin", status: "Inactive" },
+        ];
+
+        try {
+            const grid = new VanillaGrid('#grid', {
+                data: testData,
+                columns: [
+                    { key: 'id', label: 'ID', width: 60 },
+                    { key: 'name', label: 'Name', width: 120 },
+                    { key: 'department', label: 'Department', width: 120 },
+                    { key: 'city', label: 'City', width: 100 },
+                    { key: 'status', label: 'Status', width: 100 }
+                ],
+                filterable: true,
+                paginated: true,
+                pageSize: 10,
+                sortable: true
+            });
+
+            console.log('✅ Tree Filter Fix Test initialized successfully!');
+            console.log('🧪 Test Steps:');
+            console.log('1. Note the connected search field and dropdown (no gap)');
+            console.log('2. Click dropdown and select "Tree/Filter" mode');
+            console.log('3. Click on column names to expand them');
+            console.log('4. Verify that values now show properly');
+            console.log('5. Click on values to filter data');
+
+        } catch (error) {
+            console.error('❌ Error:', error);
+        }
+    </script>
+</body>
+</html>

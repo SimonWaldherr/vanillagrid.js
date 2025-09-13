@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VanillaGrid Enhanced Search - Quick Test</title>
+    <link rel="stylesheet" href="../vanillagrid.css">
+    <style>
+        body {
+            font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+            margin: 20px;
+            background: #f8f9fa;
+        }
+        .test-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .test-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196f3;
+        }
+        .test-info h3 {
+            margin: 0 0 10px 0;
+            color: #1976d2;
+        }
+        .test-steps {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .test-steps li {
+            margin-bottom: 8px;
+            color: #424242;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        .status.success {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border: 1px solid #4caf50;
+        }
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #f44336;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔍 Enhanced Search Test</h1>
+        
+        <div id="status" class="status" style="display: none;"></div>
+        
+        <div id="grid"></div>
+    </div>
+
+    <script src="../vanillagrid.js"></script>
+    <script>
+        // Test data
+        const testData = [
+            { id: 1, name: "Alice Johnson", department: "Engineering", city: "New York", status: "Active", salary: 75000 },
+            { id: 2, name: "Bob Smith", department: "Marketing", city: "Los Angeles", status: "Active", salary: 65000 },
+            { id: 3, name: "Charlie Brown", department: "Engineering", city: "Chicago", status: "Inactive", salary: 80000 },
+            { id: 4, name: "Diana Lee", department: "Sales", city: "Boston", status: "Active", salary: 70000 },
+            { id: 5, name: "Edward Wilson", department: "Engineering", city: "Seattle", status: "Active", salary: 85000 },
+            { id: 6, name: "Fiona Davis", department: "Marketing", city: "San Francisco", status: "Active", salary: 72000 },
+            { id: 7, name: "George Miller", department: "Sales", city: "Denver", status: "Inactive", salary: 68000 },
+            { id: 8, name: "Helen Taylor", department: "Engineering", city: "Miami", status: "Active", salary: 78000 },
+        ];
+
+        // Status reporting
+        const statusEl = document.getElementById('status');
+        
+        function showStatus(message, isError = false) {
+            statusEl.textContent = message;
+            statusEl.className = `status ${isError ? 'error' : 'success'}`;
+            statusEl.style.display = 'block';
+            
+            if (!isError) {
+                setTimeout(() => {
+                    statusEl.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        try {
+            // Initialize grid
+            const grid = new VanillaGrid('#grid', {
+                data: testData,
+                columns: [
+                    { key: 'id', label: 'ID', width: 60 },
+                    { key: 'name', label: 'Name', width: 140 },
+                    { key: 'department', label: 'Department', width: 120 },
+                    { key: 'city', label: 'City', width: 120 },
+                    { key: 'status', label: 'Status', width: 100 },
+                    { key: 'salary', label: 'Salary', width: 100, formatter: (val) => '$' + val.toLocaleString() }
+                ],
+                filterable: true,
+                paginated: true,
+                pageSize: 10,
+                sortable: true
+            });
+
+            showStatus('Grid initialized successfully! Try the enhanced search features.');
+
+            // Monitor for dropdown interactions
+            setTimeout(() => {
+                const dropdown = document.querySelector('.vg-filter-mode');
+                const treePanel = document.querySelector('.vg-tree-filter-panel');
+                
+                if (dropdown) {
+                    console.log('✅ Filter mode dropdown found');
+                } else {
+                    console.error('❌ Filter mode dropdown not found');
+                }
+                
+                if (treePanel) {
+                    console.log('✅ Tree filter panel element found');
+                } else {
+                    console.log('ℹ️  Tree filter panel not visible (normal - appears when tree mode is selected)');
+                }
+            }, 100);
+
+        } catch (error) {
+            showStatus('❌ Error initializing grid: ' + error.message, true);
+            console.error('Grid initialization error:', error);
+        }
+
+        // Test helpers
+        window.testSearchModes = function() {
+            console.log('🧪 Running search mode tests...');
+            
+            const input = document.querySelector('.vg-filter-input');
+            const dropdown = document.querySelector('.vg-filter-mode');
+            
+            if (!input || !dropdown) {
+                console.error('❌ Required elements not found');
+                return;
+            }
+            
+            // Test simple search
+            input.value = 'alice';
+            input.dispatchEvent(new Event('input'));
+            console.log('✅ Simple search test completed');
+            
+            // Clear search
+            setTimeout(() => {
+                input.value = '';
+                input.dispatchEvent(new Event('input'));
+                console.log('✅ Search cleared');
+            }, 1000);
+        };
+
+        // Add to global scope for testing
+        window.grid = grid;
+        console.log('🔍 Enhanced search test ready!');
+        console.log('Available test functions:');
+        console.log('- testSearchModes() - Test search functionality');
+        console.log('- grid - Access to grid instance');
+    </script>
+</body>
+</html>

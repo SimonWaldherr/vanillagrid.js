@@ -6,31 +6,68 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="../vanillagrid.js"></script>
   <link rel="stylesheet" href="../vanillagrid.css" />
+  <style>
+    body { padding: 24px; background: #f5f7fb; font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
+    .demo-info {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .search-tip {
+      background: #e3f2fd;
+      padding: 12px;
+      border-radius: 6px;
+      border-left: 4px solid #2196f3;
+      margin-top: 15px;
+    }
+    .search-tip h4 { margin: 0 0 8px 0; color: #1976d2; }
+    .search-tip p { margin: 0; color: #424242; font-size: 14px; }
+  </style>
 </head>
 <body style="padding:24px;background:#f5f7fb;">
   <h1>Basic Grid</h1>
   <div id="grid"></div>
+  
   <script>
     const products = [
-      { id: 1, name: 'Caffè Mocha',  price: 3.75,  category: 'Drinks' },
-      { id: 2, name: 'Espresso',     price: 2.10,  category: 'Drinks' },
-      { id: 3, name: 'Cheese Cake',  price: 4.95,  category: 'Dessert' },
-      { id: 4, name: 'Blueberry Pie',price: 5.25,  category: 'Dessert' },
-      { id: 5, name: 'Club Sandwich',price: 6.80,  category: 'Food' }
+      { id: 1, name: 'Caffè Mocha',   price: 3.75,  category: 'Drinks', region: 'Europe', inStock: true },
+      { id: 2, name: 'Espresso',      price: 2.10,  category: 'Drinks', region: 'Europe', inStock: true },
+      { id: 3, name: 'Cheese Cake',   price: 4.95,  category: 'Dessert', region: 'America', inStock: false },
+      { id: 4, name: 'Blueberry Pie', price: 5.25,  category: 'Dessert', region: 'America', inStock: true },
+      { id: 5, name: 'Club Sandwich', price: 6.80,  category: 'Food', region: 'America', inStock: true },
+      { id: 6, name: 'Green Tea',     price: 2.50,  category: 'Drinks', region: 'Asia', inStock: true },
+      { id: 7, name: 'Matcha Latte',  price: 4.25,  category: 'Drinks', region: 'Asia', inStock: false },
+      { id: 8, name: 'Tiramisu',      price: 5.95,  category: 'Dessert', region: 'Europe', inStock: true },
+      { id: 9, name: 'Croissant',     price: 3.20,  category: 'Food', region: 'Europe', inStock: true },
+      { id: 10, name: 'Bubble Tea',   price: 4.50,  category: 'Drinks', region: 'Asia', inStock: true }
     ];
 
     const grid = new VanillaGrid('#grid', {
       data: products,
       columns: [
-        { key: 'id', label: 'ID', type: 'number', sortable: true },
-        { key: 'name', label: 'Product', sortable: true },
-        { key: 'price', label: 'Price', type: 'number', sortable: true },
-        { key: 'category', label: 'Category', sortable: true }
+        { key: 'id', label: 'ID', type: 'number', sortable: true, width: 60 },
+        { key: 'name', label: 'Product', sortable: true, width: 140 },
+        { key: 'price', label: 'Price', type: 'number', sortable: true, width: 80, 
+          formatter: (val) => '$' + val.toFixed(2) },
+        { key: 'category', label: 'Category', sortable: true, width: 100 },
+        { key: 'region', label: 'Region', sortable: true, width: 100 },
+        { key: 'inStock', label: 'In Stock', sortable: true, width: 80,
+          formatter: (val) => val ? '✅ Yes' : '❌ No' }
       ],
       filterable: true,
-      pageSize: 5,
+      pageSize: 8,
       columnsMenu: { location: 'pager', showSearch: true, showSelectAll: true }
     });
+
+    // Add demo instructions
+    console.log('Enhanced Search Demo Ready!');
+    console.log('Try these search examples:');
+    console.log('- Simple: "tea" (finds Green Tea, Matcha Latte, Bubble Tea)');
+    console.log('- Case-Sensitive: "Tea" vs "tea"');
+    console.log('- Regex: "mocha|latte" (multiple terms)');
+    console.log('- Tree/Filter: Explore by category, region, or stock status');
   </script>
 </body>
 </html>
