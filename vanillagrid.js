@@ -17,11 +17,11 @@
         data: [],
         columns: [], // [{ key, label, type, sortable, filterable, format, render, aggregations:['sum','min','max'], link:{text,target}, image:{alt,width,height}, button:{text, onClick} }]
         pageSize: 10,
-        pageSizes: [10, 25, 50, 100],
+        pageSizes: [10, 25, 50, 100, 1000],
         sortable: true,
-        filterable: true,
+        filterable: false,
         pagination: true,
-        groupable: true,
+        groupable: false,
         groupBy: null, // key or null
         regexFilter: false,
         className: '',
@@ -65,7 +65,7 @@
   loadPage: null, // async ({page,pageSize,sortKey,sortDir,filter,regexMode}) => { rows, total }
   // Export options
         exporting: {
-          enabled: true,
+          enabled: false,
           formats: ['csv', 'md'], // supported: 'csv', 'md'
           scope: 'page', // 'page' | 'all'
           filename: 'vanillagrid'
@@ -76,7 +76,7 @@
         // Column visibility
         columnsMenu: true, // show a simple Columns menu in toolbar
         // New features
-        resizableColumns: true, // allow column resizing by dragging borders
+        resizableColumns: false, // allow column resizing by dragging borders
         editableRows: false, // enable inline row editing
         rowDragDrop: false, // enable row reordering via drag and drop
         frozenColumns: 0, // number of columns to freeze on the left
@@ -2046,6 +2046,15 @@
                 </div>
                 <div class="vg-pivot-field-list" data-type="filters"></div>
               </div>
+
+              <div class="vg-pivot-zone vg-pivot-columns">
+                <div class="vg-pivot-zone-header">
+                  <span class="vg-pivot-zone-icon">📊</span>
+                  <span class="vg-pivot-zone-title">Columns</span>
+                  <span class="vg-pivot-zone-hint">Drag column fields here</span>
+                </div>
+                <div class="vg-pivot-field-list" data-type="columns"></div>
+              </div>
               
               <div class="vg-pivot-zone vg-pivot-rows">
                 <div class="vg-pivot-zone-header">
@@ -2054,15 +2063,6 @@
                   <span class="vg-pivot-zone-hint">Drag row fields here</span>
                 </div>
                 <div class="vg-pivot-field-list" data-type="rows"></div>
-              </div>
-              
-              <div class="vg-pivot-zone vg-pivot-columns">
-                <div class="vg-pivot-zone-header">
-                  <span class="vg-pivot-zone-icon">📊</span>
-                  <span class="vg-pivot-zone-title">Columns</span>
-                  <span class="vg-pivot-zone-hint">Drag column fields here</span>
-                </div>
-                <div class="vg-pivot-field-list" data-type="columns"></div>
               </div>
               
               <div class="vg-pivot-zone vg-pivot-values">
