@@ -582,6 +582,11 @@ body.vg-resizing {
   border-bottom: 2px solid var(--vg-border);
 }
 
+.vg-pivot-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .vg-pivot-title h3 {
   margin: 0 0 4px 0;
   color: var(--vg-fg);
@@ -615,6 +620,16 @@ body.vg-resizing {
 .vg-pivot-workspace {
   display: flex;
   gap: 20px;
+}
+
+.vg-pivot-controls.collapsed .vg-pivot-workspace {
+  display: none;
+}
+
+.vg-pivot-controls.collapsed .vg-pivot-header {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
 }
 
 .vg-pivot-fields-panel {

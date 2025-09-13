@@ -1,10 +1,110 @@
 /*!
  * VanillaGrid — a tiny table library
- * Features: sort, filter (text/RegExp), pagination, group-by (sum/min/max), rich cell types
+ * Features: sorting, multiple filtering modes (simple/CS/RegExp/tree),
+ * pagination, grouping (sum/min/max), selection, resizing, basic editing,
+ * context menu, export, tree data, and optional pivot-like view.
  * No dependencies. MIT License.
+ *
+ * Usage:
+ *   const grid = new VanillaGrid('#el', { data, columns, filterable: true });
+ *   grid.setFilter('term');
+ *   grid.setSort('name', 'asc');
+ *   grid.setGroupBy('department');
+ *
+ * Public API (selected):
+ *   - setData(data:Array<object>)
+ *   - getData(): Array<object>
+ *   - setFilter(text:string, opts?:{ regexMode?:boolean, caseSensitive?:boolean })
+ *   - setSort(key:string, dir:'asc'|'desc')
+ *   - setGroupBy(key?:string)
+ *
+ * The code aims to keep DOM re-renders scoped (header/body/pager/toolbar)
+ * and uses delegated event listeners to avoid stacking across re-renders.
  */
 (function (global) {
+  /**
+  * @typedef {Object} VGColumn
+  * @property {string} key - Field name in the data rows
+  * @property {string} [label] - Column header label
+  * @property {('text'|'number'|'date'|'button'|'image')} [type]
+  * @property {boolean} [sortable]
+  * @property {(val:any,row?:object)=>string} [format]
+  * @property {(val:any,row?:object)=>string|HTMLElement} [render]
+  * @property {{ text?: string, target?: string }} [link]
+  * @property {{ alt?: string, width?: number, height?: number }} [image]
+  * @property {{ text?: string, onClick?: (row:object, btn:HTMLElement)=>void }} [button]
+  */
+
+  /**
+  * @typedef {Object} VGExporting
+  * @property {boolean} enabled
+  * @property {Array<'csv'|'md'>} formats
+  * @property {'page'|'all'} scope
+  * @property {string} filename
+  */
+
+  /**
+  * @typedef {Object} VGTreeOptions
+  * @property {boolean} enabled
+  * @property {string} childrenKey
+  * @property {number} indent
+  * @property {boolean} lazy
+  * @property {boolean} initiallyExpanded
+  * @property {string} hasChildrenKey
+  */
+
+  /**
+  * @typedef {Object} VGPivotConfig
+  * @property {string[]} rows
+  * @property {string[]} columns
+  * @property {string[]} values
+  * @property {Record<string,Function>} aggregations
+  */
+
+  /**
+  * @typedef {Object} VanillaGridOptions
+  * @property {object[]} data
+  * @property {VGColumn[]} columns
+  * @property {number} [pageSize]
+  * @property {number[]} [pageSizes]
+  * @property {boolean} [sortable]
+  * @property {boolean} [filterable]
+  * @property {boolean} [pagination]
+  * @property {boolean} [groupable]
+  * @property {string|null} [groupBy]
+  * @property {boolean} [regexFilter]
+  * @property {string} [className]
+  * @property {string} [emptyMessage]
+  * @property {VGTreeOptions} [tree]
+  * @property {(row:object)=>Promise<object[]>} [loadChildren]
+  * @property {boolean} [serverPagination]
+  * @property {boolean} [serverSorting]
+  * @property {boolean} [serverFiltering]
+  * @property {(args:{page:number,pageSize:number,sortKey?:string,sortDir?:string,filter?:string,regexMode?:boolean})=>Promise<{rows:object[],total:number}>} [loadPage]
+  * @property {VGExporting} [exporting]
+  * @property {boolean} [selectable]
+  * @property {(rows:object[])=>void} [onSelectionChange]
+  * @property {boolean|object} [columnsMenu]
+  * @property {(hidden:Set<string>)=>void} [onColumnsVisibilityChange]
+  * @property {boolean} [resizableColumns]
+  * @property {boolean} [editableRows]
+  * @property {boolean} [rowDragDrop]
+  * @property {number} [frozenColumns]
+  * @property {boolean} [keyboardNavigation]
+  * @property {boolean} [contextMenu]
+  * @property {(row:object, field:string, newValue:any, oldValue:any)=>void} [onRowEdit]
+  * @property {(draggedRow:object, targetRow:object, position:'before'|'after')=>void} [onRowDrop]
+  * @property {Record<string,Function>} [customCellTypes]
+  * @property {boolean} [pivotMode]
+  * @property {VGPivotConfig} [pivotConfig]
+  * @property {(pivotData:any, config:VGPivotConfig)=>void} [onPivotChange]
+  */
   class VanillaGrid {
+    /**
+     * Create a VanillaGrid instance.
+     * @param {string|HTMLElement} container - CSS selector or DOM node to mount into
+     * @param {VanillaGridOptions} options - Configuration and data
+     */
     constructor(container, options) {
       this.container = (typeof container === 'string')
         ? document.querySelector(container)
@@ -149,6 +249,8 @@
         pivotData: null, // processed pivot table data
         originalData: null, // backup of original data when in pivot mode
         originalColumns: null, // backup of original columns when in pivot mode
+        // Pivot UI state
+        pivotControlsCollapsed: false,
       };
 
       // Root
@@ -160,8 +262,9 @@
       this._render();
     }
 
-    // ------------- Public API ----------------
-    setData(data) {
+  // ------------- Public API ----------------
+  /** Replace all data rows and reset page. */
+  setData(data) {
   this.data = Array.isArray(data) ? data.slice() : [];
   this._idCounter = 0;
   this._assignIdsDeep(this.data);
@@ -172,16 +275,27 @@
       this._renderPager();
     }
 
-    getData() { return this.data.slice(); }
+  /** Get a shallow copy of current data. */
+  getData() { return this.data.slice(); }
 
-    setGroupBy(key) {
+  /**
+   * Set grouping by a column key (or null to disable).
+   * Re-renders body and pager.
+   */
+  setGroupBy(key) {
       this.state.groupBy = key || null;
       this.state.page = 1;
       this._renderBody();
       this._renderPager();
     }
 
-    setFilter(text, options = {}) {
+  /**
+   * Update filter text and options.
+   * For server mode, triggers remote load; otherwise re-renders body and pager.
+   * @param {string} text
+   * @param {{regexMode?:boolean, caseSensitive?:boolean}} [options]
+   */
+  setFilter(text, options = {}) {
       this.state.filter = text ?? '';
       if (options.regexMode != null) this.state.regexMode = !!options.regexMode;
       if (options.caseSensitive != null) this.state.caseSensitive = !!options.caseSensitive;
@@ -195,7 +309,12 @@
       }
     }
 
-    setSort(key, dir = 'asc') {
+  /**
+   * Apply sorting by column key and direction.
+   * @param {string} key
+   * @param {'asc'|'desc'} [dir='asc']
+   */
+  setSort(key, dir = 'asc') {
       this.state.sortKey = key;
       this.state.sortDir = dir === 'desc' ? 'desc' : 'asc';
       this._renderHeader();
@@ -460,7 +579,11 @@
       this._applyColumnVisibility();
     }
 
-    _renderToolbar() {
+  /**
+   * Render the toolbar row (search, group-by, export, optional columns menu).
+   * This method is called frequently; keep it fast and avoid stacking listeners.
+   */
+  _renderToolbar() {
       // If in pivot mode, render pivot toolbar instead
       if (this.opts.pivotMode) {
         this._renderPivotToolbar();
@@ -596,100 +719,9 @@
         };
       }
       
+      // Filter mode dropdown (simple/CS/regex/tree)
       if (modeBtn && modeDropdown) {
-        // Toggle dropdown
-        modeBtn.onclick = (e) => {
-          e.stopPropagation();
-          const isOpen = modeDropdown.classList.contains('open');
-          
-          // Close all other open dropdowns first
-          document.querySelectorAll('.vg-filter-mode.open').forEach(d => {
-            if (d !== modeDropdown) d.classList.remove('open');
-          });
-          
-          modeDropdown.classList.toggle('open');
-          
-          // Focus first option when opening
-          if (!isOpen) {
-            setTimeout(() => {
-              const firstOption = modeDropdown.querySelector('.vg-filter-mode-option');
-              if (firstOption) firstOption.focus();
-            }, 100);
-          }
-        };
-        
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-          if (!modeDropdown.contains(e.target)) {
-            modeDropdown.classList.remove('open');
-          }
-        });
-        
-        // Keyboard navigation for dropdown
-        modeDropdown.addEventListener('keydown', (e) => {
-          const options = modeDropdown.querySelectorAll('.vg-filter-mode-option');
-          const currentIndex = Array.from(options).findIndex(o => o === document.activeElement);
-          
-          switch (e.key) {
-            case 'ArrowDown':
-              e.preventDefault();
-              const nextIndex = (currentIndex + 1) % options.length;
-              options[nextIndex].focus();
-              break;
-            case 'ArrowUp':
-              e.preventDefault();
-              const prevIndex = (currentIndex - 1 + options.length) % options.length;
-              options[prevIndex].focus();
-              break;
-            case 'Enter':
-            case ' ':
-              e.preventDefault();
-              if (document.activeElement.classList.contains('vg-filter-mode-option')) {
-                document.activeElement.click();
-              }
-              break;
-            case 'Escape':
-              modeDropdown.classList.remove('open');
-              modeBtn.focus();
-              break;
-          }
-        });
-        
-        // Handle mode selection
-        modeDropdown.addEventListener('click', (e) => {
-          const option = e.target.closest('.vg-filter-mode-option');
-          if (option) {
-            e.stopPropagation();
-            const newMode = option.dataset.mode;
-            
-            // Add selection animation
-            option.style.transform = 'scale(0.95)';
-            setTimeout(() => {
-              option.style.transform = '';
-            }, 150);
-            
-            this.state.filterMode = newMode;
-            if (newMode === 'regex') {
-              this.state.regexMode = true;
-            } else {
-              this.state.regexMode = false;
-            }
-            modeDropdown.classList.remove('open');
-            this._renderToolbar();
-            this._applyFilter();
-            
-            // Focus back to input
-            setTimeout(() => {
-              const input = this.toolbarEl.querySelector('.vg-filter-input');
-              if (input) input.focus();
-            }, 100);
-          }
-        });
-        
-        // Make options focusable
-        modeDropdown.querySelectorAll('.vg-filter-mode-option').forEach(option => {
-          option.setAttribute('tabindex', '0');
-        });
+        this._setupFilterModeDropdown(modeBtn, modeDropdown);
       }
       if (selGroup) {
         selGroup.onchange = () => {
@@ -711,8 +743,109 @@
       // bind column toggles if present in toolbar
       if (renderColumnsHere) this._bindColumnsMenuEvents(this.toolbarEl);
       
-      // bind tree filter events if present
+      // Bind tree filter events if present (delegated, single handler)
       this._bindTreeFilterEvents();
+    }
+
+    /**
+     * Setup filter mode dropdown interactions without stacking global listeners.
+     * @param {HTMLElement} modeBtn
+     * @param {HTMLElement} modeDropdown
+     */
+  /**
+   * Wire up filter mode dropdown interactions and a single outside-click handler.
+   * Re-entrant safe: replaces previous document handler via instance property.
+   * @param {HTMLElement} modeBtn
+   * @param {HTMLElement} modeDropdown
+   */
+  _setupFilterModeDropdown(modeBtn, modeDropdown) {
+      // Toggle dropdown
+      modeBtn.onclick = (e) => {
+        e.stopPropagation();
+        const isOpen = modeDropdown.classList.contains('open');
+        // Close all other open dropdowns first
+        document.querySelectorAll('.vg-filter-mode.open').forEach(d => {
+          if (d !== modeDropdown) d.classList.remove('open');
+        });
+        modeDropdown.classList.toggle('open');
+        if (!isOpen) {
+          setTimeout(() => {
+            const firstOption = modeDropdown.querySelector('.vg-filter-mode-option');
+            if (firstOption) firstOption.focus();
+          }, 100);
+        }
+      };
+
+      // Close dropdown when clicking outside — ensure only one document handler
+      if (this._onDocClickFilterMode) {
+        document.removeEventListener('click', this._onDocClickFilterMode);
+      }
+      this._onDocClickFilterMode = (e) => {
+        const target = e.target;
+        if (!modeDropdown.contains(target) && !modeBtn.contains(target)) {
+          modeDropdown.classList.remove('open');
+        }
+      };
+      document.addEventListener('click', this._onDocClickFilterMode);
+
+      // Keyboard navigation for dropdown
+      modeDropdown.addEventListener('keydown', (e) => {
+        const options = modeDropdown.querySelectorAll('.vg-filter-mode-option');
+        const currentIndex = Array.from(options).findIndex(o => o === document.activeElement);
+        switch (e.key) {
+          case 'ArrowDown':
+            e.preventDefault();
+            {
+              const nextIndex = (currentIndex + 1) % options.length;
+              options[nextIndex].focus();
+            }
+            break;
+          case 'ArrowUp':
+            e.preventDefault();
+            {
+              const prevIndex = (currentIndex - 1 + options.length) % options.length;
+              options[prevIndex].focus();
+            }
+            break;
+          case 'Enter':
+          case ' ':
+            e.preventDefault();
+            if (document.activeElement.classList.contains('vg-filter-mode-option')) {
+              document.activeElement.click();
+            }
+            break;
+          case 'Escape':
+            modeDropdown.classList.remove('open');
+            modeBtn.focus();
+            break;
+        }
+      });
+
+  // Handle mode selection and re-render toolbar accordingly
+      modeDropdown.addEventListener('click', (e) => {
+        const option = e.target.closest('.vg-filter-mode-option');
+        if (!option) return;
+        e.stopPropagation();
+        const newMode = option.dataset.mode;
+        // Selection animation
+        option.style.transform = 'scale(0.95)';
+        setTimeout(() => { option.style.transform = ''; }, 150);
+        this.state.filterMode = newMode;
+        this.state.regexMode = newMode === 'regex';
+        modeDropdown.classList.remove('open');
+        this._renderToolbar();
+        this._applyFilter();
+        // Focus back to input
+        setTimeout(() => {
+          const input = this.toolbarEl.querySelector('.vg-filter-input');
+          if (input) input.focus();
+        }, 100);
+      });
+
+      // Make options focusable for keyboard navigation
+      modeDropdown.querySelectorAll('.vg-filter-mode-option').forEach(option => {
+        option.setAttribute('tabindex', '0');
+      });
     }
 
     _applyFilter() {
@@ -736,10 +869,16 @@
       }
     }
 
-    _renderTreeFilter() {
+  /**
+   * Render the Tree/Filter panel. Shows columns where values have repetitions
+   * (unique-only columns are hidden), and for each column lists top values by
+   * frequency. Clicking a value writes `column:"value"` into the search box.
+   */
+  _renderTreeFilter() {
       if (this.state.filterMode !== 'tree') return '';
       
-      const columnStats = this._getColumnValueStats();
+  // Build value frequency map per column
+  const columnStats = this._getColumnValueStats();
       const tree = Object.entries(columnStats)
         .filter(([colKey, values]) => {
           // Hide columns where all values are unique (count = 1 for all values)
@@ -753,9 +892,9 @@
           const isExpanded = this.state.treeFilterExpanded.has(colKey);
           
           const valueItems = Object.entries(values)
-            .filter(([, count]) => count > 1) // Only show values that appear more than once
-            .sort(([,a], [,b]) => b - a) // sort by count descending
-            .slice(0, 10) // limit to top 10
+            .filter(([, count]) => count > 1) // show values with repetitions only
+            .sort(([,a], [,b]) => b - a) // sort by frequency descending
+            .slice(0, 10) // top N values (tunable)
             .map(([value, count]) => 
               `<div class="vg-tree-filter-value" data-column="${colKey}" data-value="${this._escAttr(value)}">
                 <span class="vg-tree-filter-value-text">${this._esc(String(value))}</span>
@@ -777,7 +916,12 @@
       </div>`;
     }
 
-    _getColumnValueStats() {
+  /**
+   * Compute value counts for each configured column across the current dataset.
+   * Empty/undefined values are grouped under the literal "(empty)" key.
+   * @returns {Record<string, Record<string, number>>}
+   */
+  _getColumnValueStats() {
       const stats = {};
       
       this.columns.forEach(col => {
@@ -796,42 +940,43 @@
       return stats;
     }
 
+    /**
+     * Bind delegated click handlers for the Tree/Filter UI.
+     * Ensures only one listener is attached per toolbar render.
+     */
     _bindTreeFilterEvents() {
       if (!this.toolbarEl) return;
-      
-      // Column expand/collapse
-      this.toolbarEl.addEventListener('click', (e) => {
-        if (e.target.closest('.vg-tree-filter-column-name')) {
-          const header = e.target.closest('.vg-tree-filter-column-name');
-          const column = header.dataset.column;
-          const columnDiv = header.closest('.vg-tree-filter-column');
-          
+      // Avoid stacking multiple listeners across re-renders
+      if (this._onToolbarTreeClick) {
+        this.toolbarEl.removeEventListener('click', this._onToolbarTreeClick);
+      }
+      this._onToolbarTreeClick = (e) => {
+        // Column expand/collapse
+        const colHeader = e.target.closest('.vg-tree-filter-column-name');
+        if (colHeader) {
+          const column = colHeader.dataset.column;
+          const columnDiv = colHeader.closest('.vg-tree-filter-column');
           if (this.state.treeFilterExpanded.has(column)) {
             this.state.treeFilterExpanded.delete(column);
-            columnDiv.classList.remove('expanded');
+            if (columnDiv) columnDiv.classList.remove('expanded');
           } else {
             this.state.treeFilterExpanded.add(column);
-            columnDiv.classList.add('expanded');
+            if (columnDiv) columnDiv.classList.add('expanded');
           }
+          return;
         }
-        
         // Value click
-        if (e.target.closest('.vg-tree-filter-value')) {
-          const valueEl = e.target.closest('.vg-tree-filter-value');
+        const valueEl = e.target.closest('.vg-tree-filter-value');
+        if (valueEl) {
           const column = valueEl.dataset.column;
           const value = valueEl.dataset.value;
-          
           const input = this.toolbarEl.querySelector('.vg-filter-input');
           if (input) {
             input.value = `${column}:"${value}"`;
             this._applyFilter();
-            
             // Close tree filter panel but keep tree mode active
             const treePanel = this.toolbarEl.querySelector('.vg-tree-filter-panel');
-            if (treePanel) {
-              treePanel.classList.remove('show');
-            }
-            
+            if (treePanel) treePanel.classList.remove('show');
             // Focus back to input for immediate editing
             setTimeout(() => {
               input.focus();
@@ -839,7 +984,8 @@
             }, 100);
           }
         }
-      });
+      };
+      this.toolbarEl.addEventListener('click', this._onToolbarTreeClick);
     }
 
     _columnsMenuConfig() {
@@ -2464,13 +2610,18 @@
       
       const pivotControls = document.createElement('div');
       pivotControls.className = 'vg-pivot-controls';
+      if (this.state.pivotControlsCollapsed) pivotControls.classList.add('collapsed');
+      const toggleLabel = this.state.pivotControlsCollapsed ? '▸ Show Controls' : '▾ Hide Controls';
       pivotControls.innerHTML = `
         <div class="vg-pivot-header">
           <div class="vg-pivot-title">
             <h3>📊 Pivot Table Builder</h3>
             <p>Drag fields into the areas below to build your pivot table</p>
           </div>
-          <button class="vg-btn vg-pivot-exit">✕ Exit Pivot Mode</button>
+          <div class="vg-pivot-header-actions">
+            <button class="vg-btn vg-pivot-toggle" aria-expanded="${!this.state.pivotControlsCollapsed}">${toggleLabel}</button>
+            <button class="vg-btn vg-pivot-exit">✕ Exit Pivot Mode</button>
+          </div>
         </div>
         
         <div class="vg-pivot-workspace">
@@ -2767,6 +2918,18 @@
       // Exit pivot mode
       toolbar.querySelector('.vg-pivot-exit')?.addEventListener('click', () => {
         this.disablePivot();
+      });
+
+      // Toggle pivot controls collapse/expand
+      toolbar.querySelector('.vg-pivot-toggle')?.addEventListener('click', (e) => {
+        const btn = e.currentTarget;
+        const wrapper = toolbar.querySelector('.vg-pivot-controls');
+        this.state.pivotControlsCollapsed = !this.state.pivotControlsCollapsed;
+        if (wrapper) wrapper.classList.toggle('collapsed', this.state.pivotControlsCollapsed);
+        if (btn) {
+          btn.textContent = this.state.pivotControlsCollapsed ? '▸ Show Controls' : '▾ Hide Controls';
+          btn.setAttribute('aria-expanded', String(!this.state.pivotControlsCollapsed));
+        }
       });
       
       // Refresh pivot
