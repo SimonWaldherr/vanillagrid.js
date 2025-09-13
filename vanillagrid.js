@@ -73,8 +73,13 @@
         // Selection
         selectable: false, // adds a checkbox column and selection API
         onSelectionChange: null, // (selectedRows) => void
-        // Column visibility
-        columnsMenu: true, // show a simple Columns menu in toolbar
+  // Column visibility
+  // columnsMenu can be:
+  // - false to disable
+  // - true for defaults
+  // - object for configuration: { location:'pager'|'toolbar', label:string, showSearch:boolean, showSelectAll:boolean, include:string[], exclude:string[], persistKey:string, initialHidden:string[] }
+  columnsMenu: false,
+  onColumnsVisibilityChange: null, // (hiddenCols:Set<string>) => void
         // New features
         resizableColumns: false, // allow column resizing by dragging borders
         editableRows: false, // enable inline row editing
@@ -434,6 +439,8 @@
       this._bindTableEvents();
       this._bindKeyboardNavigation();
       this._bindContextMenu();
+      // restore columns menu state if configured
+      this._restoreColumnsMenuState();
       if (this._shouldRemoteFetch('init')) {
         this._remoteLoad(1);
       } else {
@@ -472,20 +479,10 @@
     <button class="vg-export-btn" type="button" aria-label="${this._escAttr(i18n.export.button)}" title="${this._escAttr(i18n.export.button)}">${this._esc(i18n.export.button)}</button>
           </div>`
         : '';
-      const columnsBlock = (this.opts.columnsMenu !== false)
-        ? `<details class="vg-cols">
-             <summary class="vg-btn" aria-haspopup="true">Columns</summary>
-             <div class="vg-cols-list" role="menu">
-               ${this.columns.map(c => {
-                  const hidden = this.state.hiddenCols.has(c.key);
-                  return `<label style="display:flex;gap:6px;align-items:center;padding:4px 2px;">
-                    <input type="checkbox" data-col-toggle value="${this._escAttr(c.key)}" ${hidden ? '' : 'checked'} />
-                    <span>${this._esc(c.label ?? c.key)}</span>
-                  </label>`;
-                }).join('')}
-             </div>
-           </details>`
-        : '';
+  // Columns menu may be rendered in pager or toolbar depending on config
+
+      const colMenuCfg = this._columnsMenuConfig();
+      const renderColumnsHere = colMenuCfg && colMenuCfg.location === 'toolbar';
 
       this.toolbarEl.innerHTML = `
         <div class="vg-toolbar-row">
@@ -504,24 +501,19 @@
               ${groupOptions.join('')}
             </select>
           </div>` : ''}
-          <div class="vg-pagesize">
-            <select class="vg-size-select" aria-label="Page size">
-              ${sizeOptions.join('')}
-            </select>
-          </div>
           ${exportBlock}
-          ${columnsBlock}
+          ${renderColumnsHere ? this._columnsMenuMarkup(colMenuCfg) : ''}
         </div>
       `;
 
       // Events
       const input = this.toolbarEl.querySelector('.vg-filter-input');
       const chk = this.toolbarEl.querySelector('.vg-filter-regex');
-      const selGroup = this.toolbarEl.querySelector('.vg-group-select');
-      const selSize = this.toolbarEl.querySelector('.vg-size-select');
+  const selGroup = this.toolbarEl.querySelector('.vg-group-select');
+  // page size select moved to pager
   const btnExport = this.toolbarEl.querySelector('.vg-export-btn');
   const selExportFmt = this.toolbarEl.querySelector('.vg-export-format');
-      const toggles = this.toolbarEl.querySelectorAll('input[data-col-toggle]');
+  // column toggles may be in toolbar depending on config
 
       if (input) {
         input.oninput = () => {
@@ -542,11 +534,7 @@
           this._renderPager();
         };
       }
-      if (selSize) {
-        selSize.onchange = () => {
-          this.setPageSize(+selSize.value);
-        };
-      }
+      // no page size select in toolbar anymore
       if (btnExport && selExportFmt) {
         btnExport.onclick = () => {
           const fmt = selExportFmt.value;
@@ -554,15 +542,133 @@
           else this.downloadMarkdown();
         };
       }
-      if (toggles && toggles.length) {
-        toggles.forEach(chk => {
-          chk.onchange = () => {
-            const key = chk.value;
-            if (chk.checked) this.state.hiddenCols.delete(key);
-            else this.state.hiddenCols.add(key);
-            this._applyColumnVisibility();
-          };
-        });
+      // bind column toggles if present in toolbar
+      if (renderColumnsHere) this._bindColumnsMenuEvents(this.toolbarEl);
+    }
+
+    _columnsMenuConfig() {
+      if (this.opts.columnsMenu === false) return null;
+      const defaults = {
+        location: 'pager', // 'pager' | 'toolbar'
+        label: 'Columns',
+        showSearch: false,
+        showSelectAll: true,
+        include: null,
+        exclude: null,
+        persistKey: null,
+        initialHidden: null,
+      };
+      const cfg = (this.opts.columnsMenu === true) ? {} : (this.opts.columnsMenu || {});
+      return Object.assign({}, defaults, cfg);
+    }
+
+    _columnsMenuMarkup(cfg) {
+      const label = cfg.label || 'Columns';
+      const includeSet = cfg.include ? new Set(cfg.include) : null;
+      const excludeSet = cfg.exclude ? new Set(cfg.exclude) : null;
+      const cols = this.columns.filter(c => {
+        if (includeSet && !includeSet.has(c.key)) return false;
+        if (excludeSet && excludeSet.has(c.key)) return false;
+        return true;
+      });
+      const items = cols.map(c => {
+        const hidden = this.state.hiddenCols.has(c.key);
+        return `<label style="display:flex;gap:6px;align-items:center;padding:4px 2px;">
+          <input type="checkbox" data-col-toggle value="${this._escAttr(c.key)}" ${hidden ? '' : 'checked'} />
+          <span>${this._esc(c.label ?? c.key)}</span>
+        </label>`;
+      }).join('');
+      const search = cfg.showSearch ? `<input type="text" class="vg-cols-search" placeholder="Search columns" style="width:100%;padding:6px 8px;border:1px solid var(--vg-border);border-radius:6px;" />` : '';
+      const selectAll = cfg.showSelectAll ? `<label style="display:flex;gap:6px;align-items:center;padding:4px 2px;">
+        <input type="checkbox" class="vg-cols-selectall" ${this._allVisible(cols) ? 'checked' : ''} />
+        <span>Select all</span>
+      </label>` : '';
+      return `
+        <details class="vg-cols">
+          <summary class="vg-btn" aria-haspopup="true">${this._esc(label)}</summary>
+          <div class="vg-cols-list" role="menu">
+            ${search}
+            ${selectAll}
+            <div class="vg-cols-items">${items}</div>
+          </div>
+        </details>`;
+    }
+
+    _allVisible(cols) {
+      return cols.every(c => !this.state.hiddenCols.has(c.key));
+    }
+
+    _bindColumnsMenuEvents(scopeEl) {
+      const list = scopeEl.querySelector('.vg-cols-list');
+      if (!list) return;
+      const itemsWrap = list.querySelector('.vg-cols-items') || list;
+      const toggles = itemsWrap.querySelectorAll('input[data-col-toggle]');
+      toggles.forEach(chk => {
+        chk.onchange = () => {
+          const key = chk.value;
+          if (chk.checked) this.state.hiddenCols.delete(key);
+          else this.state.hiddenCols.add(key);
+          this._applyColumnVisibility();
+          if (typeof this.opts.onColumnsVisibilityChange === 'function') {
+            this.opts.onColumnsVisibilityChange(new Set(this.state.hiddenCols));
+          }
+          this._persistColumnsMenuState();
+        };
+      });
+      const selAll = list.querySelector('.vg-cols-selectall');
+      if (selAll) {
+        selAll.onchange = () => {
+          const check = selAll.checked;
+          (this.columns || []).forEach(c => {
+            if (check) this.state.hiddenCols.delete(c.key);
+            else this.state.hiddenCols.add(c.key);
+          });
+          this._applyColumnVisibility();
+          if (typeof this.opts.onColumnsVisibilityChange === 'function') {
+            this.opts.onColumnsVisibilityChange(new Set(this.state.hiddenCols));
+          }
+          this._persistColumnsMenuState();
+          // reflect in checkboxes
+          itemsWrap.querySelectorAll('input[data-col-toggle]').forEach(cb => { cb.checked = check; });
+        };
+      }
+      const search = list.querySelector('.vg-cols-search');
+      if (search) {
+        search.oninput = () => {
+          const q = search.value.toLowerCase();
+          itemsWrap.querySelectorAll('label').forEach(lab => {
+            const txt = lab.textContent.toLowerCase();
+            lab.style.display = txt.includes(q) ? '' : 'none';
+          });
+        };
+      }
+    }
+
+    _persistColumnsMenuState() {
+      const cfg = this._columnsMenuConfig();
+      if (cfg && cfg.persistKey) {
+        try {
+          const arr = Array.from(this.state.hiddenCols);
+          localStorage.setItem(`vg:hiddenCols:${cfg.persistKey}`, JSON.stringify(arr));
+        } catch {}
+      }
+    }
+
+    _restoreColumnsMenuState() {
+      const cfg = this._columnsMenuConfig();
+      if (!cfg) return;
+      if (cfg.persistKey) {
+        try {
+          const raw = localStorage.getItem(`vg:hiddenCols:${cfg.persistKey}`);
+          if (raw) {
+            const arr = JSON.parse(raw);
+            this.state.hiddenCols = new Set(Array.isArray(arr) ? arr : []);
+            return;
+          }
+        } catch {}
+      }
+      if (Array.isArray(cfg.initialHidden)) {
+        this.state.hiddenCols = new Set(cfg.initialHidden);
       }
     }
 
@@ -1412,18 +1518,30 @@
       const firstDisabled = prevDisabled;
       const lastDisabled = nextDisabled;
 
+    const sizeOptions = this.opts.pageSizes.map(n =>
+      `<option value="${n}" ${+this.state.pageSize === +n ? 'selected' : ''}>${n}${this._esc(this.opts.i18n.perPageSuffix)}</option>`).join('');
+
+    const colMenuCfg = this._columnsMenuConfig();
+    const columnsBlock = (colMenuCfg && colMenuCfg.location === 'pager') ? this._columnsMenuMarkup(colMenuCfg) : '';
+
     this.pagerEl.innerHTML = `
         <div class="vg-pager-row">
-      <div class="vg-pager-left">
-        <button class="vg-page-btn" data-action="first" ${firstDisabled} aria-label="${this._escAttr(this.opts.i18n.pager.first)}" title="${this._escAttr(this.opts.i18n.pager.first)}">«</button>
-        <button class="vg-page-btn" data-action="prev" ${prevDisabled} aria-label="${this._escAttr(this.opts.i18n.pager.prev)}" title="${this._escAttr(this.opts.i18n.pager.prev)}">‹</button>
-      </div>
-      <span class="vg-page-info" aria-live="polite">${this._esc(this.opts.i18n.pager.pageInfo(page, totalPages || 1))}</span>
-      <div class="vg-pager-right">
-        <button class="vg-page-btn" data-action="next" ${nextDisabled} aria-label="${this._escAttr(this.opts.i18n.pager.next)}" title="${this._escAttr(this.opts.i18n.pager.next)}">›</button>
-        <button class="vg-page-btn" data-action="last" ${lastDisabled} aria-label="${this._escAttr(this.opts.i18n.pager.last)}" title="${this._escAttr(this.opts.i18n.pager.last)}">»</button>
-      </div>
-      <span class="vg-total">${this._esc(hasGroups ? this.opts.i18n.pager.totalGroups(totalCount) : this.opts.i18n.pager.totalRows(totalCount))}</span>
+          <div class="vg-pager-left">
+            <button class="vg-page-btn" data-action="first" ${firstDisabled} aria-label="${this._escAttr(this.opts.i18n.pager.first)}" title="${this._escAttr(this.opts.i18n.pager.first)}">«</button>
+            <button class="vg-page-btn" data-action="prev" ${prevDisabled} aria-label="${this._escAttr(this.opts.i18n.pager.prev)}" title="${this._escAttr(this.opts.i18n.pager.prev)}">‹</button>
+          </div>
+          <div class="vg-pager-center" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <span class="vg-page-info" aria-live="polite">${this._esc(this.opts.i18n.pager.pageInfo(page, totalPages || 1))}</span>
+            <span class="vg-total">${this._esc(hasGroups ? this.opts.i18n.pager.totalGroups(totalCount) : this.opts.i18n.pager.totalRows(totalCount))}</span>
+            <div class="vg-pagesize">
+              <select class="vg-size-select" aria-label="Page size">${sizeOptions}</select>
+            </div>
+            ${columnsBlock}
+          </div>
+          <div class="vg-pager-right">
+            <button class="vg-page-btn" data-action="next" ${nextDisabled} aria-label="${this._escAttr(this.opts.i18n.pager.next)}" title="${this._escAttr(this.opts.i18n.pager.next)}">›</button>
+            <button class="vg-page-btn" data-action="last" ${lastDisabled} aria-label="${this._escAttr(this.opts.i18n.pager.last)}" title="${this._escAttr(this.opts.i18n.pager.last)}">»</button>
+          </div>
         </div>
       `;
 
@@ -1457,6 +1575,15 @@
       else { this._renderBody(); this._renderPager(); }
         }
       };
+
+      // Bind page size change
+      const selSize = this.pagerEl.querySelector('.vg-size-select');
+      if (selSize) {
+        selSize.onchange = () => this.setPageSize(+selSize.value);
+      }
+
+      // Bind column toggle events
+      this._bindColumnsMenuEvents(this.pagerEl);
     }
 
     // ------------- Internal: Data pipeline ----------------

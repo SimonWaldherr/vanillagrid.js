@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>VanillaGrid • Data Explorer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="../vanillagrid.js"></script>
+  <link rel="stylesheet" href="../vanillagrid.css" />
+  <style>
+    .shell { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+    .panel { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:16px; box-shadow: var(--vg-shadow); margin-bottom:16px; }
+    .row { display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+    .row > * { flex: 1 1 auto; }
+    .row .tight { flex: 0 0 auto; }
+    .muted { color:#6b7280; }
+    .pill { background:#f3f4f6; border:1px solid #e5e7eb; padding:4px 8px; border-radius:999px; }
+    .split { display:grid; grid-template-columns: 360px 1fr; gap:16px; }
+    @media (max-width: 960px) { .split{ grid-template-columns: 1fr; } }
+    .dropzone { border:2px dashed #d1d5db; border-radius:10px; padding:16px; text-align:center; color:#6b7280; }
+    .dropzone.drag { border-color:#3b82f6; background: rgba(59,130,246,.05); }
+    .list { max-height: 260px; overflow:auto; border:1px solid #e5e7eb; border-radius:10px; padding:8px; }
+    .list h4 { margin:8px 0; }
+    .list .chip { display:inline-flex; gap:6px; align-items:center; padding:4px 8px; border:1px solid #e5e7eb; border-radius:999px; margin:4px; background:#fff; }
+    .actions { display:flex; gap:8px; flex-wrap:wrap; }
+  </style>
+</head>
+<body style="background:#f5f7fb;">
+  <div class="shell">
+    <h1 style="margin:0 0 8px;">Data Explorer</h1>
+    <p class="muted" style="margin:0 0 16px;">Load CSV/JSON/XML from file or URL, then sort, filter, group, pivot, and export with VanillaGrid.</p>
+
+    <div class="panel split">
+      <div>
+        <div class="panel">
+          <div class="row">
+            <input id="file" class="tight" type="file" accept=".csv,.json,.xml,.txt" />
+            <input id="url" placeholder="https://example.com/data.csv" style="padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px; min-width:280px;" />
+            <button id="load-url" class="tight" style="padding:8px 12px; border:1px solid #e5e7eb; border-radius:8px; background:#fff;">Load URL</button>
+            <button id="sample" class="tight" style="padding:8px 12px; border:1px solid #e5e7eb; border-radius:8px; background:#fff;">Load Sample</button>
+          </div>
+          <div id="drop" class="dropzone" style="margin-top:10px;">Drop CSV/JSON/XML here</div>
+        </div>
+
+        <div class="panel">
+          <div class="row">
+            <input id="filter" placeholder="Filter..." style="padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px; min-width:220px;" />
+            <label class="muted"><input id="regex" type="checkbox" /> RegExp</label>
+            <select id="group-by" style="padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px;"><option value="">No group</option></select>
+            <button id="clear" class="tight" style="padding:8px 12px; border:1px solid #e5e7eb; border-radius:8px; background:#fff;">Clear</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3 style="margin:0 0 8px;">Pivot</h3>
+          <div class="row">
+            <select id="pivot-rows" multiple size="6" class="list"></select>
+            <select id="pivot-columns" multiple size="6" class="list"></select>
+            <select id="pivot-values" multiple size="6" class="list"></select>
+          </div>
+          <div class="row actions" style="margin-top:8px;">
+            <button id="apply-pivot" class="tight" style="padding:8px 12px; border:1px solid #e5e7eb; border-radius:8px; background:#fff;">Apply Pivot</button>
+            <button id="disable-pivot" class="tight" style="padding:8px 12px; border:1px solid #e5e7eb; border-radius:8px; background:#fff;">Disable Pivot</button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div id="grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      raw: null,
+      data: [],
+      columns: [],
+    };
+
+    const grid = new VanillaGrid('#grid', {
+      data: [],
+      columns: [],
+      filterable: true,
+      pageSize: 25,
+      columnsMenu: { location: 'pager', showSearch: true, showSelectAll: true, persistKey: 'data-explorer' },
+      exporting: { enabled: true, formats: ['csv','md'], scope: 'page', filename: 'data' }
+    });
+
+    const el = (id) => document.getElementById(id);
+
+    function inferColumns(rows) {
+      if (!rows || !rows.length) return [];
+      const keys = Array.from(new Set(rows.flatMap(r => Object.keys(r))));
+      return keys.map(k => ({ key: k, label: k, sortable: true, type: typeof rows[0][k] === 'number' ? 'number' : 'text' }));
+    }
+
+    function setData(rows) {
+      state.data = rows;
+      state.columns = inferColumns(rows);
+      grid.columns = state.columns;
+      grid.setData(state.data);
+      // populate grouping/pivot lists
+      const opts = state.columns.map(c => `<option value="${c.key}">${c.label}</option>`).join('');
+      el('group-by').innerHTML = `<option value="">No group</option>` + opts;
+      el('pivot-rows').innerHTML = opts;
+      el('pivot-columns').innerHTML = opts;
+      el('pivot-values').innerHTML = opts;
+    }
+
+    async function parseFile(file) {
+      const text = await file.text();
+      return parseText(text, file.name);
+    }
+
+    function parseText(text, filename = '') {
+      const lower = filename.toLowerCase();
+      if (lower.endsWith('.csv') || /,\s*\w+/.test(text.split('\n')[0])) {
+        return parseCSV(text);
+      } else if (lower.endsWith('.json')) {
+        return parseJSON(text);
+      } else if (lower.endsWith('.xml') || text.trim().startsWith('<')) {
+        return parseXML(text);
+      }
+      // try JSON as fallback
+      try { return parseJSON(text); } catch {}
+      // try CSV as last resort
+      return parseCSV(text);
+    }
+
+    function parseCSV(text) {
+      const lines = text.split(/\r?\n/).filter(l => l.trim().length);
+      if (!lines.length) return [];
+      const headers = lines[0].split(',').map(h => h.trim());
+      return lines.slice(1).map(line => {
+        const cells = line.match(/\"([^\"]*)\"|[^,]+/g)?.map(s => s.replace(/^\"|\"$/g,'')) || [];
+        const obj = {};
+        headers.forEach((h, i) => obj[h] = coerce(cells[i]));
+        return obj;
+      });
+    }
+
+    function parseJSON(text) {
+      const data = JSON.parse(text);
+      if (Array.isArray(data)) return data;
+      if (data && typeof data === 'object') {
+        const keys = Object.keys(data);
+        // Try common shapes: { items: [] } or { data: [] }
+        const arr = Array.isArray(data.items) ? data.items : (Array.isArray(data.data) ? data.data : null);
+        if (arr) return arr;
+      }
+      throw new Error('Unsupported JSON structure');
+    }
+
+    function parseXML(text) {
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(text, 'text/xml');
+      const err = xml.querySelector('parsererror');
+      if (err) throw new Error('Invalid XML');
+      // Convert shallow XML tables: <rows><row><col>..</col></row></rows>
+      const rows = [];
+      xml.querySelectorAll('row').forEach(rowEl => {
+        const obj = {};
+        Array.from(rowEl.children).forEach(child => { obj[child.tagName] = coerce(child.textContent); });
+        rows.push(obj);
+      });
+      if (rows.length) return rows;
+      // Generic: flatten first level elements
+      const items = Array.from(xml.documentElement.children).map(e => {
+        const obj = {};
+        Array.from(e.children).forEach(child => { obj[child.tagName] = coerce(child.textContent); });
+        return obj;
+      });
+      return items;
+    }
+
+    function coerce(v) {
+      if (v == null) return v;
+      const s = String(v).trim();
+      if (s === '') return '';
+      if (!Number.isNaN(Number(s))) return Number(s);
+      if (s === 'true') return true;
+      if (s === 'false') return false;
+      return v;
+    }
+
+    // Events
+    el('file').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try { setData(await parseFile(file)); } catch (err) { alert(err.message); }
+    });
+
+    el('load-url').onclick = async () => {
+      const url = el('url').value.trim();
+      if (!url) return;
+      try {
+        const res = await fetch(url);
+        const text = await res.text();
+        setData(parseText(text, url));
+      } catch (err) { alert(err.message); }
+    };
+
+    el('sample').onclick = async () => {
+      const sample = [
+        { id: 1, name: 'Latte', price: 3.4, category: 'Drinks' },
+        { id: 2, name: 'Croissant', price: 2.9, category: 'Food' },
+        { id: 3, name: 'Brownie', price: 3.1, category: 'Dessert' }
+      ];
+      setData(sample);
+    };
+
+    el('drop').addEventListener('dragover', (e) => { e.preventDefault(); e.currentTarget.classList.add('drag'); });
+    el('drop').addEventListener('dragleave', (e) => { e.currentTarget.classList.remove('drag'); });
+    el('drop').addEventListener('drop', async (e) => {
+      e.preventDefault(); e.currentTarget.classList.remove('drag');
+      const file = e.dataTransfer.files[0];
+      if (!file) return;
+      try { setData(await parseFile(file)); } catch (err) { alert(err.message); }
+    });
+
+    el('filter').oninput = () => grid.setFilter(el('filter').value, { regexMode: el('regex').checked });
+    el('regex').onchange = () => grid.setFilter(el('filter').value, { regexMode: el('regex').checked });
+    el('group-by').onchange = () => grid.setGroupBy(el('group-by').value || null);
+
+    el('apply-pivot').onclick = () => {
+      const rows = Array.from(el('pivot-rows').selectedOptions).map(o => o.value);
+      const columns = Array.from(el('pivot-columns').selectedOptions).map(o => o.value);
+      const values = Array.from(el('pivot-values').selectedOptions).map(o => ({ key: o.value, agg: 'sum' }));
+      grid.enablePivot({ rows, columns, values, aggregations: {} });
+    };
+    el('disable-pivot').onclick = () => grid.disablePivot();
+  </script>
+</body>
+</html>

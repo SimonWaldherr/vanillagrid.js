@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>VanillaGrid • Basic</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="../vanillagrid.js"></script>
+  <link rel="stylesheet" href="../vanillagrid.css" />
+</head>
+<body style="padding:24px;background:#f5f7fb;">
+  <h1>Basic Grid</h1>
+  <div id="grid"></div>
+  <script>
+    const products = [
+      { id: 1, name: 'Caffè Mocha',  price: 3.75,  category: 'Drinks' },
+      { id: 2, name: 'Espresso',     price: 2.10,  category: 'Drinks' },
+      { id: 3, name: 'Cheese Cake',  price: 4.95,  category: 'Dessert' },
+      { id: 4, name: 'Blueberry Pie',price: 5.25,  category: 'Dessert' },
+      { id: 5, name: 'Club Sandwich',price: 6.80,  category: 'Food' }
+    ];
+
+    const grid = new VanillaGrid('#grid', {
+      data: products,
+      columns: [
+        { key: 'id', label: 'ID', type: 'number', sortable: true },
+        { key: 'name', label: 'Product', sortable: true },
+        { key: 'price', label: 'Price', type: 'number', sortable: true },
+        { key: 'category', label: 'Category', sortable: true }
+      ],
+      filterable: true,
+      pageSize: 5,
+      columnsMenu: { location: 'pager', showSearch: true, showSelectAll: true }
+    });
+  </script>
+</body>
+</html>

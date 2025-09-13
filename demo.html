@@ -125,6 +125,8 @@
   const grid = new VanillaGrid('#grid', {
       data: products,
       pageSize: 5,
+      filterable: true,
+      regexFilter: true,
       columns: [
         { key: 'img', label: '', type: 'image', image: { alt:'product', width:60, height:40 }, sortable: false, filterable: false },
         { key: 'name', label: 'Name', type: 'text', sortable: true },

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>VanillaGrid • Selection + Columns</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="../vanillagrid.js"></script>
+  <link rel="stylesheet" href="../vanillagrid.css" />
+</head>
+<body style="padding:24px;background:#f5f7fb;">
+  <h1>Selection + Columns</h1>
+  <div id="select-grid"></div>
+  <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+    <span id="sel-count" style="color:#6b7280;">Selected: 0</span>
+    <button id="btn-clear-sel" style="padding:4px 8px; border:1px solid #e5e7eb; border-radius:6px; background:#fff; cursor:pointer;">Clear Selection</button>
+  </div>
+  <script>
+    const rows = Array.from({length: 42}, (_,i) => ({ id: i+1, name: `Row ${i+1}`, qty: Math.round(Math.random()*100), cat: ['A','B','C'][i%3] }));
+
+    const grid = new VanillaGrid('#select-grid', {
+      data: rows,
+      selectable: true,
+      columns: [
+        { key: 'id', label: 'ID', type: 'number' },
+        { key: 'name', label: 'Name' },
+        { key: 'qty', label: 'Qty', type: 'number' },
+        { key: 'cat', label: 'Category' }
+      ],
+      filterable: true,
+      pageSize: 10,
+      columnsMenu: { location: 'pager', showSearch: true, showSelectAll: true, persistKey: 'demo-select-cols' },
+      onColumnsVisibilityChange: (hidden) => {
+        document.title = `Hidden: ${Array.from(hidden).join(',')}`;
+      }
+    });
+
+    grid.opts.onSelectionChange = (selectedRows) => {
+      document.getElementById('sel-count').textContent = `Selected: ${selectedRows.length}`;
+    };
+    document.getElementById('btn-clear-sel').onclick = () => {
+      grid.state.selected.clear();
+      grid._renderBody();
+      grid._emitSelection && grid._emitSelection();
+    };
+  </script>
+</body>
+</html>

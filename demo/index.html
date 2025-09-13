@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>VanillaGrid Demos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../vanillagrid.css" />
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; background:#f6f7fb; margin:0; }
+    .wrap { max-width: 980px; margin: 24px auto; padding: 0 16px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(240px,1fr)); gap: 16px; }
+    .card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:16px; text-decoration:none; color:#111; box-shadow: var(--vg-shadow); }
+    .card:hover { border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,.15); }
+    .card h3 { margin:0 0 6px 0; font-size:16px; }
+    .card p { margin:0; color:#6b7280; font-size:13px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1 style="margin:0 0 12px;">VanillaGrid Demos</h1>
+    <p style="color:#6b7280; margin:0 0 20px;">Explore examples showcasing sorting, filtering, pagination, grouping, export, tree views, and a rich data explorer for JSON/CSV/XML.</p>
+    <div class="grid">
+      <a class="card" href="basic.html">
+        <h3>Basic Grid</h3>
+        <p>Minimal setup with sorting and pagination.</p>
+      </a>
+      <a class="card" href="tree.html">
+        <h3>Tree Grid</h3>
+        <p>Hierarchical rows with expand/collapse.</p>
+      </a>
+      <a class="card" href="remote.html">
+        <h3>Remote Grid</h3>
+        <p>Server-side pagination and sorting.</p>
+      </a>
+      <a class="card" href="selection-columns.html">
+        <h3>Selection + Columns</h3>
+        <p>Row selection and configurable columns menu.</p>
+      </a>
+      <a class="card" href="data-explorer.html">
+        <h3>Data Explorer</h3>
+        <p>Load CSV/JSON/XML, sort, filter, group, pivot, export.</p>
+      </a>
+    </div>
+  </div>
+</body>
+</html>

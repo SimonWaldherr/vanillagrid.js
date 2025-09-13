@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>VanillaGrid • Tree</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="../vanillagrid.js"></script>
+  <link rel="stylesheet" href="../vanillagrid.css" />
+</head>
+<body style="padding:24px;background:#f5f7fb;">
+  <h1>Tree Grid</h1>
+  <div id="tree-grid"></div>
+  <script>
+    const data = [
+      { id: 1, name: 'Warehouse A', hasChildren: true, children: [
+        { id: 2, name: 'Aisle 1', children: [
+          { id: 3, name: 'Bin 1', children: [
+            { id: 4, name: 'SKU-1001', stock: 20 },
+            { id: 5, name: 'SKU-1002', stock: 8 }
+          ]}
+        ]}
+      ]}
+    ];
+
+    const grid = new VanillaGrid('#tree-grid', {
+      data,
+      columns: [
+        { key: 'name', label: 'Name' },
+        { key: 'stock', label: 'Stock', type: 'number' }
+      ],
+      tree: { enabled: true, initiallyExpanded: true },
+      pageSize: 10,
+      columnsMenu: { location: 'pager' }
+    });
+  </script>
+</body>
+</html>

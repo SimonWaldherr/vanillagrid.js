@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>VanillaGrid • Remote</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="../vanillagrid.js"></script>
+  <link rel="stylesheet" href="../vanillagrid.css" />
+</head>
+<body style="padding:24px;background:#f5f7fb;">
+  <h1>Remote (Server-side) Grid</h1>
+  <div id="remote-grid"></div>
+  <script>
+    const ALL = Array.from({length: 250}, (_,i) => ({ id: i+1, name: `Item ${i+1}`, price: Math.round(Math.random()*1000)/100, cat: ['A','B','C'][i%3] }));
+
+    const simulateServer = async ({ page, pageSize, sortKey, sortDir, filter }) => {
+      await new Promise(r => setTimeout(r, 120));
+      let rows = ALL.slice();
+      if (filter) rows = rows.filter(r => Object.values(r).some(v => String(v).toLowerCase().includes(filter.toLowerCase())));
+      if (sortKey) rows.sort((a,b) => (a[sortKey] > b[sortKey] ? 1 : -1) * (sortDir==='desc'?-1:1));
+      const total = rows.length;
+      const start = (page - 1) * pageSize;
+      rows = rows.slice(start, start + pageSize);
+      return { rows, total };
+    };
+
+    const grid = new VanillaGrid('#remote-grid', {
+      data: [],
+      columns: [
+        { key: 'id', label: 'ID', type: 'number' },
+        { key: 'name', label: 'Name' },
+        { key: 'price', label: 'Price', type: 'number' },
+        { key: 'cat', label: 'Category' }
+      ],
+      filterable: true,
+      serverPagination: true,
+      serverSorting: true,
+      serverFiltering: true,
+      loadPage: simulateServer,
+      pageSize: 10,
+      columnsMenu: { location: 'pager', showSearch: true }
+    });
+  </script>
+</body>
+</html>
