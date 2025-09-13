@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>VanillaGrid • Grouping & Aggregation</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="../vanillagrid.js"></script>
+  <link rel="stylesheet" href="../vanillagrid.css" />
+</head>
+<body style="padding:24px;background:#f5f7fb;">
+  <h1>Grouping & Aggregation</h1>
+  <p style="color:#6b7280;">Group by category and see sum, min, max aggregations.</p>
+  <div id="group-grid"></div>
+  <script>
+    const sales = Array.from({length: 50}, (_, i) => {
+      const categories = ['Electronics', 'Clothing', 'Books', 'Home & Garden', 'Sports'];
+      const products = {
+        Electronics: ['Laptop', 'Phone', 'Tablet', 'Headphones'],
+        Clothing: ['T-Shirt', 'Jeans', 'Jacket', 'Shoes'],
+        Books: ['Novel', 'Textbook', 'Magazine', 'Guide'],
+        'Home & Garden': ['Plant', 'Tool', 'Furniture', 'Decor'],
+        Sports: ['Ball', 'Racket', 'Weights', 'Gear']
+      };
+      
+      const category = categories[i % categories.length];
+      const productList = products[category];
+      const product = productList[i % productList.length];
+      
+      return {
+        id: i + 1,
+        product: `${product} ${Math.floor(i/5) + 1}`,
+        category,
+        price: Math.round((Math.random() * 500 + 10) * 100) / 100,
+        quantity: Math.floor(Math.random() * 20) + 1,
+        revenue: 0, // calculated below
+        date: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1).toISOString().split('T')[0]
+      };
+    });
+
+    // Calculate revenue
+    sales.forEach(item => {
+      item.revenue = Math.round(item.price * item.quantity * 100) / 100;
+    });
+
+    const grid = new VanillaGrid('#group-grid', {
+      data: sales,
+      columns: [
+        { key: 'id', label: 'ID', type: 'number', sortable: true },
+        { key: 'product', label: 'Product', sortable: true },
+        { key: 'category', label: 'Category', sortable: true },
+        { 
+          key: 'price', 
+          label: 'Price', 
+          type: 'number', 
+          sortable: true,
+          aggregations: ['min', 'max'],
+          format: (value) => `$${value.toFixed(2)}`
+        },
+        { 
+          key: 'quantity', 
+          label: 'Qty', 
+          type: 'number', 
+          sortable: true,
+          aggregations: ['sum', 'min', 'max']
+        },
+        { 
+          key: 'revenue', 
+          label: 'Revenue', 
+          type: 'number', 
+          sortable: true,
+          aggregations: ['sum', 'min', 'max'],
+          format: (value) => `$${value.toFixed(2)}`
+        },
+        { key: 'date', label: 'Date', sortable: true }
+      ],
+      filterable: true,
+      groupable: true,
+      groupBy: 'category',
+      pageSize: 15,
+      columnsMenu: { location: 'pager', showSearch: true, showSelectAll: true }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>VanillaGrid • Pivot Table</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="../vanillagrid.js"></script>
+  <link rel="stylesheet" href="../vanillagrid.css" />
+</head>
+<body style="padding:24px;background:#f5f7fb;">
+  <h1>Pivot Table</h1>
+  <p style="color:#6b7280;">Interactive pivot table builder with drag & drop interface.</p>
+  
+  <div style="display:flex; gap:8px; margin-bottom:16px;">
+    <button id="enable-pivot" style="padding:8px 12px; border:1px solid #3b82f6; background:#3b82f6; color:white; border-radius:8px; cursor:pointer;">Enable Pivot Mode</button>
+    <button id="load-sample" style="padding:8px 12px; border:1px solid #e5e7eb; background:#fff; border-radius:8px; cursor:pointer;">Load Sample Data</button>
+    <button id="quarterly-analysis" style="padding:8px 12px; border:1px solid #e5e7eb; background:#fff; border-radius:8px; cursor:pointer;">Quarterly Analysis</button>
+    <button id="regional-analysis" style="padding:8px 12px; border:1px solid #e5e7eb; background:#fff; border-radius:8px; cursor:pointer;">Regional Analysis</button>
+  </div>
+
+  <div id="pivot-grid"></div>
+
+  <script>
+    // Generate sample e-commerce data
+    const generateSampleData = () => {
+      const regions = ['North', 'South', 'East', 'West'];
+      const channels = ['Online', 'Retail', 'Wholesale'];
+      const categories = ['Electronics', 'Clothing', 'Books', 'Home'];
+      const quarters = ['Q1 2024', 'Q2 2024', 'Q3 2024', 'Q4 2024'];
+      
+      return Array.from({length: 200}, (_, i) => ({
+        id: i + 1,
+        region: regions[i % regions.length],
+        channel: channels[i % channels.length],
+        category: categories[i % categories.length],
+        quarter: quarters[i % quarters.length],
+        product: `Product ${i % 20 + 1}`,
+        revenue: Math.round((Math.random() * 5000 + 500) * 100) / 100,
+        units: Math.floor(Math.random() * 100) + 10,
+        cost: Math.round((Math.random() * 2000 + 200) * 100) / 100,
+        profit: 0, // calculated below
+        month: Math.floor(Math.random() * 12) + 1,
+        year: 2024
+      }));
+    };
+
+    let sampleData = generateSampleData();
+    // Calculate profit
+    sampleData.forEach(item => {
+      item.profit = Math.round((item.revenue - item.cost) * 100) / 100;
+    });
+
+    const grid = new VanillaGrid('#pivot-grid', {
+      data: sampleData,
+      columns: [
+        { key: 'id', label: 'ID', type: 'number' },
+        { key: 'region', label: 'Region' },
+        { key: 'channel', label: 'Channel' },
+        { key: 'category', label: 'Category' },
+        { key: 'quarter', label: 'Quarter' },
+        { key: 'product', label: 'Product' },
+        { 
+          key: 'revenue', 
+          label: 'Revenue', 
+          type: 'number',
+          format: (value) => `$${value.toLocaleString()}`
+        },
+        { key: 'units', label: 'Units', type: 'number' },
+        { 
+          key: 'cost', 
+          label: 'Cost', 
+          type: 'number',
+          format: (value) => `$${value.toLocaleString()}`
+        },
+        { 
+          key: 'profit', 
+          label: 'Profit', 
+          type: 'number',
+          format: (value) => `$${value.toLocaleString()}`
+        },
+        { key: 'month', label: 'Month', type: 'number' },
+        { key: 'year', label: 'Year', type: 'number' }
+      ],
+      filterable: true,
+      pageSize: 20,
+      columnsMenu: { location: 'pager', showSearch: true, showSelectAll: true },
+      exporting: { enabled: true, formats: ['csv', 'md'] }
+    });
+
+    // Event handlers
+    document.getElementById('enable-pivot').onclick = () => {
+      grid.enablePivot({
+        rows: [],
+        columns: [],
+        values: [],
+        aggregations: {}
+      });
+    };
+
+    document.getElementById('load-sample').onclick = () => {
+      sampleData = generateSampleData();
+      sampleData.forEach(item => {
+        item.profit = Math.round((item.revenue - item.cost) * 100) / 100;
+      });
+      grid.setData(sampleData);
+    };
+
+    document.getElementById('quarterly-analysis').onclick = () => {
+      grid.enablePivot({
+        rows: ['quarter'],
+        columns: ['channel'],
+        values: ['revenue', 'profit'],
+        aggregations: {
+          revenue: 'sum',
+          profit: 'sum'
+        }
+      });
+    };
+
+    document.getElementById('regional-analysis').onclick = () => {
+      grid.enablePivot({
+        rows: ['region', 'category'],
+        columns: ['quarter'],
+        values: ['revenue', 'units'],
+        aggregations: {
+          revenue: 'sum',
+          units: 'sum'
+        }
+      });
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>VanillaGrid • Rich Cell Types</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="../vanillagrid.js"></script>
+  <link rel="stylesheet" href="../vanillagrid.css" />
+</head>
+<body style="padding:24px;background:#f5f7fb;">
+  <h1>Rich Cell Types</h1>
+  <p style="color:#6b7280;">Images, links, buttons, progress bars, ratings, and badges.</p>
+  <div id="rich-grid"></div>
+  <script>
+    const products = [
+      { 
+        id: 1, 
+        name: 'Caffè Mocha', 
+        image: 'https://picsum.photos/seed/mocha/60/40',
+        price: 3.75, 
+        rating: 4.5,
+        progress: 85,
+        status: 'available',
+        url: 'https://example.com/mocha',
+        action: 'View Details'
+      },
+      { 
+        id: 2, 
+        name: 'Espresso', 
+        image: 'https://picsum.photos/seed/espresso/60/40',
+        price: 2.10, 
+        rating: 4.8,
+        progress: 92,
+        status: 'low',
+        url: 'https://example.com/espresso',
+        action: 'Reorder'
+      },
+      { 
+        id: 3, 
+        name: 'Cheese Cake', 
+        image: 'https://picsum.photos/seed/cheese/60/40',
+        price: 4.95, 
+        rating: 4.2,
+        progress: 45,
+        status: 'out',
+        url: 'https://example.com/cheese',
+        action: 'Contact Supplier'
+      },
+      { 
+        id: 4, 
+        name: 'Blueberry Pie', 
+        image: 'https://picsum.photos/seed/pie/60/40',
+        price: 5.25, 
+        rating: 4.6,
+        progress: 78,
+        status: 'available',
+        url: 'https://example.com/pie',
+        action: 'View Details'
+      },
+      { 
+        id: 5, 
+        name: 'Club Sandwich', 
+        image: 'https://picsum.photos/seed/sandwich/60/40',
+        price: 6.80, 
+        rating: 4.1,
+        progress: 23,
+        status: 'low',
+        url: 'https://example.com/sandwich',
+        action: 'Reorder'
+      }
+    ];
+
+    const grid = new VanillaGrid('#rich-grid', {
+      data: products,
+      columns: [
+        { key: 'id', label: 'ID', type: 'number', sortable: true },
+        { 
+          key: 'image', 
+          label: 'Image', 
+          type: 'image',
+          image: { alt: 'Product image', width: 60, height: 40 }
+        },
+        { key: 'name', label: 'Product', sortable: true },
+        { key: 'price', label: 'Price', type: 'number', sortable: true },
+        {
+          key: 'rating',
+          label: 'Rating',
+          type: 'custom',
+          render: (value) => {
+            const stars = '★'.repeat(Math.floor(value)) + '☆'.repeat(5 - Math.floor(value));
+            return `<span class="vg-rating">${stars} ${value}</span>`;
+          }
+        },
+        {
+          key: 'progress',
+          label: 'Stock %',
+          type: 'custom',
+          render: (value) => {
+            return `<div class="vg-progress">
+              <div class="vg-progress-bar" style="width: ${value}%"></div>
+              <div class="vg-progress-text">${value}%</div>
+            </div>`;
+          }
+        },
+        {
+          key: 'status',
+          label: 'Status',
+          type: 'custom',
+          render: (value) => {
+            const badges = {
+              available: 'success',
+              low: 'warning',
+              out: 'error'
+            };
+            return `<span class="vg-badge vg-badge-${badges[value] || 'default'}">${value}</span>`;
+          }
+        },
+        { 
+          key: 'url', 
+          label: 'Link', 
+          type: 'link',
+          link: { text: 'Visit', target: '_blank' }
+        },
+        {
+          key: 'action',
+          label: 'Action',
+          type: 'button',
+          button: {
+            text: 'Action',
+            onClick: (row, btn) => {
+              alert(`Action clicked for ${row.name}: ${row.action}`);
+            }
+          }
+        }
+      ],
+      filterable: true,
+      pageSize: 10,
+      columnsMenu: { location: 'pager', showSearch: true, showSelectAll: true }
+    });
+  </script>
+</body>
+</html>

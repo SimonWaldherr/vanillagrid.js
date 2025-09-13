@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>VanillaGrid • Advanced Features</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="../vanillagrid.js"></script>
+  <link rel="stylesheet" href="../vanillagrid.css" />
+  <style>
+    .controls { background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:16px; margin-bottom:16px; }
+    .controls h3 { margin:0 0 8px; }
+    .btn-group { display:flex; gap:8px; flex-wrap:wrap; }
+    .status-active { color: #059669; font-weight: 500; }
+    .status-inactive { color: #dc2626; font-weight: 500; }
+  </style>
+</head>
+<body style="padding:24px;background:#f5f7fb;">
+  <h1>Advanced Features</h1>
+  <p style="color:#6b7280;">Column resizing, inline editing, keyboard navigation, context menus, and custom cell types.</p>
+  
+  <div class="controls">
+    <h3>Features</h3>
+    <div class="btn-group">
+      <button id="add-row" style="padding:6px 12px; border:1px solid #e5e7eb; background:#fff; border-radius:8px; cursor:pointer;">➕ Add Row</button>
+      <button id="reset-columns" style="padding:6px 12px; border:1px solid #e5e7eb; background:#fff; border-radius:8px; cursor:pointer;">📏 Reset Column Widths</button>
+      <button id="toggle-theme" style="padding:6px 12px; border:1px solid #e5e7eb; background:#fff; border-radius:8px; cursor:pointer;">🌙 Toggle Theme</button>
+      <button id="toggle-density" style="padding:6px 12px; border:1px solid #e5e7eb; background:#fff; border-radius:8px; cursor:pointer;">📐 Toggle Density</button>
+    </div>
+    <p style="margin:8px 0 0; color:#6b7280; font-size:13px;">
+      Try: Drag column borders to resize • Double-click cells to edit • Right-click rows for context menu • Use arrow keys to navigate
+    </p>
+  </div>
+
+  <div id="advanced-grid"></div>
+
+  <script>
+    // Generate task data
+    const generateTasks = () => Array.from({length: 25}, (_, i) => {
+      const statuses = ['pending', 'in-progress', 'completed', 'cancelled'];
+      const priorities = ['low', 'medium', 'high', 'urgent'];
+      const assignees = ['Alice Johnson', 'Bob Smith', 'Carol Davis', 'David Wilson', 'Emma Brown'];
+      
+      return {
+        id: i + 1,
+        title: `Task ${i + 1}: ${['Fix bug', 'Add feature', 'Update docs', 'Review code', 'Test API'][i % 5]}`,
+        assignee: assignees[i % assignees.length],
+        status: statuses[i % statuses.length],
+        priority: priorities[i % priorities.length],
+        progress: Math.floor(Math.random() * 101),
+        dueDate: new Date(Date.now() + (Math.random() * 30 - 15) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        estimatedHours: Math.floor(Math.random() * 20) + 1,
+        description: `This is a detailed description of task ${i + 1}. It involves multiple steps and coordination.`,
+        tags: ['frontend', 'backend', 'testing', 'docs'][i % 4]
+      };
+    });
+
+    let tasks = generateTasks();
+
+    const grid = new VanillaGrid('#advanced-grid', {
+      data: tasks,
+      columns: [
+        { key: 'id', label: 'ID', type: 'number', sortable: true },
+        { key: 'title', label: 'Task Title', sortable: true },
+        { key: 'assignee', label: 'Assignee', sortable: true },
+        {
+          key: 'status',
+          label: 'Status',
+          sortable: true,
+          type: 'custom',
+          render: (value) => {
+            const badges = {
+              pending: 'default',
+              'in-progress': 'info',
+              completed: 'success',
+              cancelled: 'error'
+            };
+            return `<span class="vg-badge vg-badge-${badges[value]}">${value}</span>`;
+          }
+        },
+        {
+          key: 'priority',
+          label: 'Priority',
+          sortable: true,
+          type: 'custom',
+          render: (value) => {
+            const colors = {
+              low: '#10b981',
+              medium: '#f59e0b',
+              high: '#ef4444',
+              urgent: '#dc2626'
+            };
+            return `<span style="color: ${colors[value]}; font-weight: 500;">▲ ${value.toUpperCase()}</span>`;
+          }
+        },
+        {
+          key: 'progress',
+          label: 'Progress',
+          type: 'custom',
+          sortable: true,
+          render: (value) => {
+            const color = value < 30 ? '#ef4444' : value < 70 ? '#f59e0b' : '#10b981';
+            return `<div class="vg-progress">
+              <div class="vg-progress-bar" style="width: ${value}%; background: ${color}"></div>
+              <div class="vg-progress-text">${value}%</div>
+            </div>`;
+          }
+        },
+        { key: 'dueDate', label: 'Due Date', sortable: true },
+        { key: 'estimatedHours', label: 'Est. Hours', type: 'number', sortable: true },
+        { key: 'tags', label: 'Tags', sortable: true }
+      ],
+      filterable: true,
+      pageSize: 15,
+      resizableColumns: true,
+      editableRows: true,
+      keyboardNavigation: true,
+      contextMenu: true,
+      columnsMenu: { 
+        location: 'pager', 
+        showSearch: true, 
+        showSelectAll: true,
+        persistKey: 'advanced-demo'
+      },
+      onRowEdit: (row, field, newValue, oldValue) => {
+        console.log(`Edited ${field}: ${oldValue} → ${newValue}`, row);
+      }
+    });
+
+    // Apply theme classes
+    let isDark = false;
+    let isCompact = false;
+
+    function applyTheme() {
+      document.body.classList.toggle('vg-theme-dark', isDark);
+      document.body.classList.toggle('vg-compact', isCompact);
+    }
+
+    // Event handlers
+    document.getElementById('add-row').onclick = () => {
+      const newTask = {
+        id: tasks.length + 1,
+        title: `New Task ${tasks.length + 1}`,
+        assignee: 'Unassigned',
+        status: 'pending',
+        priority: 'medium',
+        progress: 0,
+        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        estimatedHours: 1,
+        description: 'New task description',
+        tags: 'new'
+      };
+      
+      tasks.push(newTask);
+      grid.addRow(newTask);
+    };
+
+    document.getElementById('reset-columns').onclick = () => {
+      grid.resetColumnWidths();
+    };
+
+    document.getElementById('toggle-theme').onclick = () => {
+      isDark = !isDark;
+      applyTheme();
+    };
+
+    document.getElementById('toggle-density').onclick = () => {
+      isCompact = !isCompact;
+      applyTheme();
+    };
+
+    applyTheme();
+  </script>
+</body>
+</html>

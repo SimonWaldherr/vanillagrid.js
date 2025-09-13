@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>VanillaGrid • Export & Print</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="../vanillagrid.js"></script>
+  <link rel="stylesheet" href="../vanillagrid.css" />
+  <style>
+    .export-panel { background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:16px; margin-bottom:16px; }
+    .export-controls { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    @media print {
+      .export-panel, .no-print { display: none !important; }
+      .vg-toolbar, .vg-pager { display: none !important; }
+    }
+  </style>
+</head>
+<body style="padding:24px;background:#f5f7fb;">
+  <h1 class="no-print">Export & Print Demo</h1>
+  <p class="no-print" style="color:#6b7280;">Export data as CSV/Markdown or print the table directly.</p>
+  
+  <div class="export-panel no-print">
+    <h3 style="margin:0 0 8px;">Export Options</h3>
+    <div class="export-controls">
+      <button id="export-csv" style="padding:8px 12px; border:1px solid #e5e7eb; background:#fff; border-radius:8px; cursor:pointer;">📄 Export CSV</button>
+      <button id="export-md" style="padding:8px 12px; border:1px solid #e5e7eb; background:#fff; border-radius:8px; cursor:pointer;">📝 Export Markdown</button>
+      <button id="print-table" style="padding:8px 12px; border:1px solid #e5e7eb; background:#fff; border-radius:8px; cursor:pointer;">🖨️ Print Table</button>
+      <select id="export-scope" style="padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px;">
+        <option value="page">Current Page Only</option>
+        <option value="all">All Data</option>
+      </select>
+      <input id="filename" placeholder="filename" value="export" style="padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px; width:120px;" />
+    </div>
+  </div>
+
+  <div id="export-grid"></div>
+
+  <script>
+    // Generate employee data
+    const employees = Array.from({length: 150}, (_, i) => {
+      const firstNames = ['Alice', 'Bob', 'Carol', 'David', 'Emma', 'Frank', 'Grace', 'Henry', 'Ivy', 'Jack'];
+      const lastNames = ['Anderson', 'Brown', 'Clark', 'Davis', 'Evans', 'Fisher', 'Green', 'Harris', 'Johnson', 'King'];
+      const departments = ['Engineering', 'Sales', 'Marketing', 'HR', 'Finance', 'Operations'];
+      const titles = ['Manager', 'Senior', 'Associate', 'Coordinator', 'Specialist', 'Director'];
+      
+      const firstName = firstNames[i % firstNames.length];
+      const lastName = lastNames[Math.floor(i / firstNames.length) % lastNames.length];
+      const department = departments[i % departments.length];
+      const title = titles[i % titles.length];
+      
+      return {
+        id: i + 1,
+        name: `${firstName} ${lastName}`,
+        email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@company.com`,
+        department,
+        title: `${title} ${department}`,
+        salary: Math.floor(Math.random() * 80000) + 40000,
+        startDate: new Date(2020 + Math.floor(Math.random() * 4), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1).toISOString().split('T')[0],
+        status: Math.random() > 0.1 ? 'Active' : 'Inactive',
+        location: ['New York', 'San Francisco', 'London', 'Tokyo'][i % 4]
+      };
+    });
+
+    const grid = new VanillaGrid('#export-grid', {
+      data: employees,
+      columns: [
+        { key: 'id', label: 'ID', type: 'number', sortable: true },
+        { key: 'name', label: 'Name', sortable: true },
+        { key: 'email', label: 'Email', sortable: true },
+        { key: 'department', label: 'Department', sortable: true },
+        { key: 'title', label: 'Title', sortable: true },
+        { 
+          key: 'salary', 
+          label: 'Salary', 
+          type: 'number', 
+          sortable: true,
+          format: (value) => `$${value.toLocaleString()}`
+        },
+        { key: 'startDate', label: 'Start Date', sortable: true },
+        { key: 'status', label: 'Status', sortable: true },
+        { key: 'location', label: 'Location', sortable: true }
+      ],
+      filterable: true,
+      groupable: true,
+      pageSize: 20,
+      columnsMenu: { 
+        location: 'pager', 
+        showSearch: true, 
+        showSelectAll: true,
+        exclude: ['email'] // Don't allow hiding email column
+      },
+      exporting: { 
+        enabled: true, 
+        formats: ['csv', 'md'],
+        scope: 'page',
+        filename: 'employees'
+      }
+    });
+
+    // Custom export handlers
+    document.getElementById('export-csv').onclick = () => {
+      const scope = document.getElementById('export-scope').value;
+      const filename = document.getElementById('filename').value || 'export';
+      
+      // Temporarily change export scope
+      const originalScope = grid.opts.exporting.scope;
+      const originalFilename = grid.opts.exporting.filename;
+      grid.opts.exporting.scope = scope;
+      grid.opts.exporting.filename = filename;
+      
+      grid.downloadCSV();
+      
+      // Restore original settings
+      grid.opts.exporting.scope = originalScope;
+      grid.opts.exporting.filename = originalFilename;
+    };
+
+    document.getElementById('export-md').onclick = () => {
+      const scope = document.getElementById('export-scope').value;
+      const filename = document.getElementById('filename').value || 'export';
+      
+      // Temporarily change export scope
+      const originalScope = grid.opts.exporting.scope;
+      const originalFilename = grid.opts.exporting.filename;
+      grid.opts.exporting.scope = scope;
+      grid.opts.exporting.filename = filename;
+      
+      grid.downloadMarkdown();
+      
+      // Restore original settings
+      grid.opts.exporting.scope = originalScope;
+      grid.opts.exporting.filename = originalFilename;
+    };
+
+    document.getElementById('print-table').onclick = () => {
+      window.print();
+    };
+  </script>
+</body>
+</html>
