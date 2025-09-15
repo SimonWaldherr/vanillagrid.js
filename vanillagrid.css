@@ -938,7 +938,145 @@ body.vg-resizing {
 }
 
 /* Responsive design */
+@media (max-width: 768px) {
+  /* Mobile-first adjustments */
+  .vg-container {
+    font-size: 13px;
+  }
+  
+  /* Compact toolbar for mobile */
+  .vg-toolbar {
+    padding: 8px;
+  }
+  
+  .vg-toolbar-row {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  
+  /* Mobile-optimized filter */
+  .vg-filter {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .vg-filter-input {
+    min-width: 0;
+    padding: 8px 12px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  .vg-filter-mode-btn {
+    padding: 8px 12px;
+    min-width: 80px;
+    font-size: 12px;
+  }
+  
+  /* Touch-friendly dropdowns */
+  .vg-filter-mode-dropdown {
+    left: 0;
+    right: 0;
+    min-width: 0;
+    width: auto;
+  }
+  
+  .vg-filter-mode-option {
+    padding: 14px 16px;
+    font-size: 14px;
+  }
+  
+  /* Horizontal scroll for table */
+  .vg-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+  
+  .vg-table {
+    min-width: 100%;
+  }
+  
+  /* Mobile table cells */
+  .vg-table th,
+  .vg-table td {
+    padding: 8px 12px;
+    white-space: nowrap;
+    min-width: 80px;
+  }
+  
+  /* Touch-friendly pagination */
+  .vg-pager {
+    padding: 12px 8px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .vg-pager-info {
+    order: 1;
+    flex: 1 0 100%;
+    text-align: center;
+    margin-bottom: 8px;
+  }
+  
+  .vg-pager-controls {
+    order: 2;
+    flex: 1;
+    justify-content: center;
+  }
+  
+  .vg-pager-select {
+    order: 3;
+    flex: 0 0 auto;
+  }
+  
+  .vg-pager button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 8px;
+  }
+  
+  /* Mobile tree filter */
+  .vg-tree-filter-panel {
+    left: 0;
+    right: 0;
+    max-width: none;
+    width: auto;
+    max-height: 70vh;
+  }
+  
+  .vg-tree-filter-column-name {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+  
+  .vg-tree-filter-value {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+  
+  /* Touch-friendly buttons */
+  .vg-btn,
+  button {
+    min-height: 44px;
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+  
+  /* Mobile context menu */
+  .vg-context-menu {
+    min-width: 200px;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+  }
+  
+  .vg-context-menu li {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+}
+
 @media (max-width: 1024px) {
+  /* Tablet adjustments */
   .vg-pivot-workspace {
     flex-direction: column;
   }
@@ -949,11 +1087,77 @@ body.vg-resizing {
   
   .vg-pivot-drop-zones {
     grid-template-columns: 1fr;
+    gap: 12px;
   }
   
   .vg-pivot-actions {
     flex-direction: column;
+    gap: 8px;
   }
+  
+  .vg-pivot-field-item {
+    font-size: 13px;
+    padding: 8px 12px;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  /* Touch-specific styles */
+  .vg-table th,
+  .vg-table td {
+    position: relative;
+  }
+  
+  /* Larger touch targets */
+  .vg-sortable:hover::after {
+    display: none;
+  }
+  
+  .vg-sortable::after {
+    padding: 4px;
+  }
+  
+  /* Touch feedback */
+  .vg-table tbody tr:active {
+    background-color: var(--vg-accent-weak) !important;
+  }
+  
+  .vg-btn:active,
+  button:active {
+    transform: scale(0.98);
+  }
+}
+
+/* Touch feedback class for interactive elements */
+.vg-touch-active {
+  background-color: var(--vg-accent-weak) !important;
+  transform: scale(0.98);
+  transition: none !important;
+}
+
+/* Improved scrollbar for touch devices */
+.vg-table-wrapper {
+  scrollbar-width: thin;
+  scrollbar-color: var(--vg-border) transparent;
+}
+
+.vg-table-wrapper::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+.vg-table-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.vg-table-wrapper::-webkit-scrollbar-thumb {
+  background-color: var(--vg-border);
+  border-radius: 4px;
+}
+
+.vg-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background-color: var(--vg-muted);
 }
 
 /* Dark theme support for pivot */

@@ -13,13 +13,35 @@
     .hero p { margin: 0; opacity: 0.9; font-size: 16px; }
     .new-badge { display: inline-block; background: #ff6b6b; color: white; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 12px; margin-left: 8px; }
     .grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(240px,1fr)); gap: 16px; }
-    .card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:16px; text-decoration:none; color:#111; box-shadow: var(--vg-shadow); position: relative; }
+    .card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:16px; text-decoration:none; color:#111; box-shadow: var(--vg-shadow); position: relative; transition: all 0.2s ease; }
     .card:hover { border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,.15); }
     .card.featured { border-color: #10b981; background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%); }
     .card.featured:hover { border-color: #059669; box-shadow:0 0 0 3px rgba(16,185,129,.15); }
     .card h3 { margin:0 0 6px 0; font-size:16px; }
     .card p { margin:0; color:#6b7280; font-size:13px; }
     .feature-icon { font-size: 20px; margin-bottom: 8px; display: block; }
+    
+    /* Mobile optimizations */
+    @media (max-width: 768px) {
+      .wrap { margin: 16px auto; padding: 0 12px; }
+      .hero { padding: 20px 16px; margin-bottom: 20px; }
+      .hero h1 { font-size: 24px; }
+      .hero p { font-size: 14px; }
+      .grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 14px; }
+      .card h3 { font-size: 15px; }
+      .card p { font-size: 12px; }
+      /* Touch-friendly cards */
+      .card:active { 
+        transform: scale(0.98);
+        transition: transform 0.1s ease;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .hero h1 { font-size: 20px; }
+      .new-badge { font-size: 10px; padding: 2px 6px; }
+    }
   </style>
 </head>
 <body>

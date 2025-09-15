@@ -566,6 +566,7 @@
       this._renderToolbar();
       this._renderHeader();
       this._bindTableEvents();
+      this._bindMobileTouch();
       this._bindKeyboardNavigation();
       this._bindContextMenu();
       // restore columns menu state if configured
@@ -1300,6 +1301,121 @@
           document.body.classList.add('vg-resizing');
         });
       });
+    }
+
+    // Mobile touch enhancements
+    _bindMobileTouch() {
+      if (!('ontouchstart' in window)) return; // Not a touch device
+      
+      let touchState = {
+        startX: 0,
+        startY: 0,
+        threshold: 50,
+        scrolling: false,
+        swiping: false
+      };
+      
+      // Horizontal swipe on table wrapper for pagination
+      const tableWrap = this.root.querySelector('.vg-table-wrap');
+      if (tableWrap) {
+        tableWrap.addEventListener('touchstart', (e) => {
+          touchState.startX = e.touches[0].clientX;
+          touchState.startY = e.touches[0].clientY;
+          touchState.scrolling = false;
+          touchState.swiping = false;
+        }, { passive: true });
+        
+        tableWrap.addEventListener('touchmove', (e) => {
+          if (touchState.swiping) return;
+          
+          const deltaX = Math.abs(e.touches[0].clientX - touchState.startX);
+          const deltaY = Math.abs(e.touches[0].clientY - touchState.startY);
+          
+          // Determine if this is vertical scrolling
+          if (deltaY > deltaX && deltaY > 10) {
+            touchState.scrolling = true;
+          }
+        }, { passive: true });
+        
+        tableWrap.addEventListener('touchend', (e) => {
+          if (touchState.scrolling || touchState.swiping) return;
+          
+          const deltaX = e.changedTouches[0].clientX - touchState.startX;
+          const deltaY = Math.abs(e.changedTouches[0].clientY - touchState.startY);
+          
+          // Only trigger swipe if horizontal movement is significant and vertical is minimal
+          if (Math.abs(deltaX) > touchState.threshold && deltaY < 30) {
+            touchState.swiping = true;
+            
+            // Swipe left = next page, swipe right = prev page
+            if (deltaX < -touchState.threshold && this.opts.pagination) {
+              this._nextPage();
+            } else if (deltaX > touchState.threshold && this.opts.pagination) {
+              this._prevPage();
+            }
+          }
+        }, { passive: true });
+      }
+      
+      // Touch feedback for interactive elements
+      this.root.addEventListener('touchstart', (e) => {
+        const btn = e.target.closest('button, .vg-btn, .vg-sortable, .vg-group-header, .vg-tree-toggle');
+        if (btn) {
+          btn.classList.add('vg-touch-active');
+        }
+      }, { passive: true });
+      
+      this.root.addEventListener('touchend', (e) => {
+        // Remove touch feedback
+        this.root.querySelectorAll('.vg-touch-active').forEach(el => {
+          el.classList.remove('vg-touch-active');
+        });
+      }, { passive: true });
+      
+      // Improved dropdown handling for mobile
+      this._bindMobileDropdowns();
+    }
+    
+    _bindMobileDropdowns() {
+      // Make dropdowns work better on mobile by improving touch handling
+      this.root.addEventListener('touchend', (e) => {
+        const option = e.target.closest('.vg-filter-mode-option, .vg-tree-filter-value');
+        if (option) {
+          // Prevent ghost clicks
+          e.preventDefault();
+          option.click();
+        }
+      });
+      
+      // Auto-close dropdowns when scrolling on mobile
+      let scrollTimer;
+      window.addEventListener('scroll', () => {
+        clearTimeout(scrollTimer);
+        scrollTimer = setTimeout(() => {
+          // Close any open dropdowns after scroll ends
+          const openDropdowns = this.root.querySelectorAll('.vg-filter-mode.open');
+          openDropdowns.forEach(dropdown => {
+            dropdown.classList.remove('open');
+          });
+        }, 150);
+      }, { passive: true });
+    }
+    
+    // Helper methods for touch pagination
+    _nextPage() {
+      if (this.state.page < this._totalPages()) {
+        this.state.page++;
+        this._renderBody();
+        this._renderPager();
+      }
+    }
+    
+    _prevPage() {
+      if (this.state.page > 1) {
+        this.state.page--;
+        this._renderBody();
+        this._renderPager();
+      }
     }
 
     // Keyboard navigation functionality

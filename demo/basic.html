@@ -24,6 +24,41 @@
     }
     .search-tip h4 { margin: 0 0 8px 0; color: #1976d2; }
     .search-tip p { margin: 0; color: #424242; font-size: 14px; }
+    
+    /* Mobile optimizations */
+    @media (max-width: 768px) {
+      body { 
+        padding: 16px 12px; 
+        font-size: 14px;
+      }
+      h1 { 
+        font-size: 20px; 
+        margin: 0 0 16px 0;
+      }
+      .demo-info {
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+      .search-tip {
+        padding: 10px;
+        margin-top: 12px;
+      }
+      .search-tip h4 { 
+        font-size: 14px; 
+      }
+      .search-tip p { 
+        font-size: 13px; 
+      }
+    }
+    
+    @media (max-width: 480px) {
+      body { 
+        padding: 12px 8px; 
+      }
+      h1 { 
+        font-size: 18px; 
+      }
+    }
   </style>
 </head>
 <body style="padding:24px;background:#f5f7fb;">
