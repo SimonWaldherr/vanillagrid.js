@@ -12,11 +12,6 @@
 <body style="padding:24px;background:#f5f7fb;">
   <h1 style="font-family:system-ui;margin:0 0 16px 0;">VanillaGrid Demo</h1>
   <p style="color:#6b7280;margin:0 0 12px 0;">Sort, filter, paginate, group, export, tree view, remote data, and Markdown ingestion.</p>
-  <div style="display:flex; gap:8px; align-items:center; margin-bottom:20px;">
-    <button id="btn-theme" style="padding:6px 10px; border:1px solid #e5e7eb; border-radius:8px; background:#fff; cursor:pointer;">Toggle Theme</button>
-    <button id="btn-density" style="padding:6px 10px; border:1px solid #e5e7eb; border-radius:8px; background:#fff; cursor:pointer;">Toggle Density</button>
-  </div>
-
   <h2 style="font-family:system-ui;margin:24px 0 8px;">Basic Grid</h2>
   <div id="grid"></div>
 
@@ -95,17 +90,6 @@
   <div id="pivot-grid"></div>
 
   <script>
-    // Theme / Density toggles
-    const applyThemeDensity = () => {
-      document.body.classList.toggle('vg-theme-dark', window.__vgDark === true);
-      document.body.classList.toggle('vg-compact', window.__vgCompact === true);
-    };
-    window.__vgDark = false;
-    window.__vgCompact = false;
-    applyThemeDensity();
-    document.getElementById('btn-theme').onclick = () => { window.__vgDark = !window.__vgDark; applyThemeDensity(); };
-    document.getElementById('btn-density').onclick = () => { window.__vgCompact = !window.__vgCompact; applyThemeDensity(); };
-
     // Sample data mixing text, numbers, html, images, links, and buttons
     const products = [
       { id: 1, name: 'Caffè Mocha',  price: 3.75,  category: 'Drinks',   img: 'https://picsum.photos/seed/mocha/60/40',  url: 'https://example.com/mocha',  stock: 42, desc: '<b>Chocolate</b> meets coffee' },

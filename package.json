@@ -7,7 +7,7 @@
     "start": "node scripts/serve.js",
     "build": "npm run clean && npm run minify",
     "clean": "rm -rf dist && mkdir -p dist",
-    "minify": "terser vanillagrid.js --compress --mangle --output dist/vanillagrid.min.js && cleancss -o dist/vanillagrid.min.css vanillagrid.css"
+    "minify": "terser vanillagrid.js --compress --mangle --output dist/vanillagrid.min.js && cleancss -o dist/vanillagrid.min.css vanillagrid.css && terser vg-pivot-d3.js --compress --mangle --output dist/vg-pivot-d3.min.js && cleancss -o dist/vg-pivot-d3.min.css vg-pivot-d3.css"
   },
   "devDependencies": {
     "terser": "^5.33.0",

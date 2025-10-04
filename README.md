@@ -32,6 +32,8 @@ npm run build
 Outputs minified assets to `dist/`:
 - `dist/vanillagrid.min.js`
 - `dist/vanillagrid.min.css`
+- `dist/vg-pivot-d3.min.js`
+- `dist/vg-pivot-d3.min.css`
 
 ## Use
 
@@ -40,6 +42,10 @@ Include the minified assets in your page:
 ```html
 <link rel="stylesheet" href="dist/vanillagrid.min.css" />
 <script src="dist/vanillagrid.min.js"></script>
+
+<!-- Optional: pivot chart plugin (lazy-loads d3.js on demand) -->
+<link rel="stylesheet" href="dist/vg-pivot-d3.min.css" />
+<script src="dist/vg-pivot-d3.min.js"></script>
 ```
 
 Then instantiate:
