@@ -1,0 +1,55 @@
+/* VanillaGrid Pivot d3 Plugin styles */
+.vg-pivot-chart-panel {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--vg-border);
+  border-radius: 8px;
+  background: var(--vg-bg);
+}
+
+.vg-pivot-chart-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.vg-pivot-chart-label {
+  font-size: 12px;
+  color: var(--vg-muted);
+}
+
+.vg-pivot-chart-check {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--vg-fg);
+}
+
+.vg-pivot-chart {
+  height: 320px;
+  border: 1px solid var(--vg-border);
+  border-radius: 8px;
+  background: var(--vg-bg);
+}
+
+.vg-pivot-chart-msg {
+  padding: 12px;
+  color: var(--vg-muted);
+  font-size: 13px;
+}
+
+.vg-error-msg {
+  color: #b91c1c;
+}
+
+/* Dark theme tweaks */
+.vg-theme-dark .vg-pivot-chart-panel {
+  background: var(--vg-bg);
+  border-color: var(--vg-border);
+}
+.vg-theme-dark .vg-pivot-chart {
+  border-color: var(--vg-border);
+}

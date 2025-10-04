@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <title>VanillaGrid • Ultra Kompakt Demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://simonwaldherr.github.io/vanillagrid.js/vanillagrid.js"></script>
+  <link rel="stylesheet" href="https://simonwaldherr.github.io/vanillagrid.js/vanillagrid.css" />
+  <style>
+    body { font-family: system-ui; margin: 0; padding: 12px; background: #f8f9fa; font-size: 13px; }
+    .demo { background: white; margin-bottom: 16px; border-radius: 6px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .demo h3 { margin: 0; padding: 8px 12px; background: #667eea; color: white; font-size: 13px; font-weight: 600; }
+    .btn { padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer; font-size: 11px; }
+    .btn:hover { background: #f0f2ff; border-color: #667eea; }
+    h1 { text-align: center; margin: 0 0 16px; color: #333; font-size: 18px; }
+    @media (max-width: 768px) { body { padding: 8px; } .demo { margin-bottom: 12px; } }
+  </style>
+</head>
+<body>
+  <h1>VanillaGrid</h1>
+  <div class="demo">
+      <div id="g2"></div>
+  </div>
+  <script>
+    const data = [
+      {id:1,name:'Espresso',price:2.5,cat:'Drink',region:'EU',stock:true,rating:4.5,img:'https://picsum.photos/40/25?random=1'},
+      {id:2,name:'Cappuccino',price:3.2,cat:'Drink',region:'EU',stock:true,rating:4.8,img:'https://picsum.photos/40/25?random=2'},
+      {id:3,name:'Croissant',price:1.8,cat:'Food',region:'EU',stock:false,rating:4.0,img:'https://picsum.photos/40/25?random=3'},
+      {id:4,name:'Bagel',price:2.2,cat:'Food',region:'US',stock:true,rating:3.8,img:'https://picsum.photos/40/25?random=4'},
+      {id:5,name:'Tea',price:2.8,cat:'Drink',region:'Asia',stock:true,rating:4.3,img:'https://picsum.photos/40/25?random=5'}
+    ];
+
+    const g2 = new VanillaGrid('#g2', {
+      data,
+      pageSize: 10,
+      columns: [
+        {key:'img',label:'',type:'image',image:{width:40,height:25}},
+        {key:'name',label:'Name'},
+        {key:'rating',label:'Rating',type:'rating'}, // ⭐ Rating
+        {key:'price',label:'Progress',type:'progress',render:v=>v*20}, // Progress Bar
+        {key:'stock',label:'Status',type:'badge',render:v=>v?'Verfügbar':'Aus'}, // Badge
+        {key:'name',label:'Link',type:'link',link:{text:'🔗',target:'_blank'},render:(v,r)=>`#${r.name}`}, // Link
+        {key:'id',label:'Action',type:'button',button:{text:'⚡',onClick:r=>alert(`${r.name}: €${r.price}`)}} // Button
+      ]
+    });
+  </script>
+</body>
+</html>
