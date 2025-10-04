@@ -6,6 +6,7 @@ A tiny dependency‑free data grid with:
 - Remote/server‑side paging, sorting, filtering
 - Export to CSV/Markdown and Markdown table ingestion
 - Column visibility menu and checkbox row selection
+- Built-in settings panel to switch themes (light, dark-blue, dark-grey, midnight, forest, ocean, sand), toggle compact density, and enable striped rows on the fly
 
 ## Quick start
 

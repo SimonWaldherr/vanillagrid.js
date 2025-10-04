@@ -22,6 +22,22 @@
  * and uses delegated event listeners to avoid stacking across re-renders.
  */
 (function (global) {
+  const VG_STYLE_THEMES = [
+    { value: 'light', label: 'Light', dark: false },
+    { value: 'dark-blue', label: 'Dark Blue', dark: true },
+    { value: 'dark-grey', label: 'Dark Grey', dark: true },
+    { value: 'midnight', label: 'Midnight Violet', dark: true },
+    { value: 'forest', label: 'Forest Night', dark: true },
+    { value: 'ocean', label: 'Ocean Breeze', dark: false },
+    { value: 'sand', label: 'Sand Dune', dark: false }
+  ];
+
+  const VG_STYLE_DEFAULT_STATE = {
+    theme: 'light',
+    density: 'comfortable',
+    striped: false,
+  };
+
   /**
   * @typedef {Object} VGColumn
   * @property {string} key - Field name in the data rows
@@ -126,6 +142,13 @@
         regexFilter: false,
         className: '',
         emptyMessage: 'No rows to display.',
+        theme: 'light',
+        density: 'comfortable',
+        striped: false,
+        styleControls: {
+          enabled: true,
+          persistKey: 'vanillagrid:style',
+        },
         // i18n strings (override any to localize)
         i18n: {
           tableLabel: 'Data table',
@@ -208,6 +231,13 @@
       };
       this.opts = Object.assign({}, defaults, options || {});
       if (options && options.tree) this.opts.tree = Object.assign({}, defaults.tree, options.tree);
+      if (options) {
+        if (options.styleControls === false) {
+          this.opts.styleControls = false;
+        } else if (options.styleControls && typeof options.styleControls === 'object') {
+          this.opts.styleControls = Object.assign({}, defaults.styleControls, options.styleControls);
+        }
+      }
       this.columns = this.opts.columns;
       this.data = Array.isArray(this.opts.data) ? this.opts.data.slice() : [];
 
@@ -258,6 +288,8 @@
       this.root.className = `vg-container ${this.opts.className}`.trim();
       this.container.innerHTML = '';
       this.container.appendChild(this.root);
+
+  this._initStyleState();
 
       this._render();
     }
@@ -591,6 +623,8 @@
         return;
       }
       
+      this._closeAllSettingsPanels();
+
       const filterable = this.opts.filterable;
       const groupable = this.opts.groupable;
       const i18n = this.opts.i18n;
@@ -600,20 +634,24 @@
         .concat(this.columns.map(c =>
           `<option value="${this._esc(c.key)}" ${this.state.groupBy === c.key ? 'selected' : ''}>${this._esc(i18n.groupByPrefix)} ${this._esc(c.label ?? c.key)}</option>`));
 
-      const sizeOptions = pageSizes.map(n =>
-        `<option value="${n}" ${+this.state.pageSize === +n ? 'selected' : ''}>${n}${this._esc(i18n.perPageSuffix)}</option>`);
-
-  const exportBlock = (this.opts.exporting && this.opts.exporting.enabled)
+      const exportBlock = (this.opts.exporting && this.opts.exporting.enabled)
         ? `<div class="vg-export">
             <select class="vg-export-format" aria-label="${this._escAttr(i18n.export.format)}">
               ${this.opts.exporting.formats.map(f => f === 'csv'
                 ? `<option value="csv">${this._esc(i18n.export.csv)}</option>`
                 : `<option value="md">${this._esc(i18n.export.markdown)}</option>`).join('')}
             </select>
-    <button class="vg-export-btn" type="button" aria-label="${this._escAttr(i18n.export.button)}" title="${this._escAttr(i18n.export.button)}">${this._esc(i18n.export.button)}</button>
+            <button class="vg-export-btn" type="button" aria-label="${this._escAttr(i18n.export.button)}" title="${this._escAttr(i18n.export.button)}">${this._esc(i18n.export.button)}</button>
           </div>`
         : '';
-  // Columns menu may be rendered in pager or toolbar depending on config
+      const settingsMarkup = this._styleControlsMarkup();
+      const actionsMarkup = (exportBlock || settingsMarkup)
+        ? `<div class="vg-toolbar-actions">
+            ${exportBlock}
+            ${settingsMarkup}
+          </div>`
+        : '';
+      // Columns menu may be rendered in pager or toolbar depending on config
 
       const colMenuCfg = this._columnsMenuConfig();
       const renderColumnsHere = colMenuCfg && colMenuCfg.location === 'toolbar';
@@ -651,8 +689,8 @@
               ${groupOptions.join('')}
             </select>
           </div>` : ''}
-          ${exportBlock}
           ${renderColumnsHere ? this._columnsMenuMarkup(colMenuCfg) : ''}
+          ${actionsMarkup}
         </div>
       `;
 
@@ -743,6 +781,7 @@
       }
       // bind column toggles if present in toolbar
       if (renderColumnsHere) this._bindColumnsMenuEvents(this.toolbarEl);
+      this._bindStyleControls(this.toolbarEl);
       
       // Bind tree filter events if present (delegated, single handler)
       this._bindTreeFilterEvents();
@@ -846,6 +885,311 @@
       // Make options focusable for keyboard navigation
       modeDropdown.querySelectorAll('.vg-filter-mode-option').forEach(option => {
         option.setAttribute('tabindex', '0');
+      });
+    }
+
+    _styleControlsEnabled() {
+      const cfg = this.opts.styleControls;
+      if (cfg === false) return false;
+      if (cfg && typeof cfg.enabled === 'boolean') return cfg.enabled;
+      return true;
+    }
+
+    _normalizeThemeValue(theme) {
+      if (theme == null) return null;
+      const value = String(theme).trim().toLowerCase();
+      if (!value) return null;
+      return value === 'dark' ? 'dark-blue' : value;
+    }
+
+    _humanizeTheme(value) {
+      const normal = this._normalizeThemeValue(value) || '';
+      return normal.split(/[-_]/).filter(Boolean).map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' ') || 'Light';
+    }
+
+    _getThemeDefs() {
+      const cfg = this.opts.styleControls;
+      const custom = cfg && Array.isArray(cfg.themes) ? cfg.themes : null;
+      const source = (custom && custom.length ? custom : VG_STYLE_THEMES).map(def => ({
+        value: this._normalizeThemeValue(def && def.value != null ? def.value : def),
+        label: def && typeof def === 'object' && def.label ? String(def.label) : null,
+        dark: !!(def && typeof def === 'object' && def.dark)
+      }));
+      const seen = new Set();
+      const defs = [];
+      for (const def of source) {
+        if (!def.value || seen.has(def.value)) continue;
+        defs.push({
+          value: def.value,
+          label: def.label || this._humanizeTheme(def.value),
+          dark: def.dark
+        });
+        seen.add(def.value);
+      }
+      if (!seen.has('light')) {
+        defs.unshift({ value: 'light', label: 'Light', dark: false });
+      }
+      return defs;
+    }
+
+    _stylePersistKey() {
+      const cfg = this.opts.styleControls;
+      if (!cfg || cfg.persistKey === false) return null;
+      const key = typeof cfg.persistKey === 'string' ? cfg.persistKey.trim() : 'vanillagrid:style';
+      if (!key) return null;
+      // Namespace by container id if available to avoid collisions across unrelated grids when requested.
+      if (cfg && cfg.scope === 'instance') {
+        const suffix = this.container && this.container.id ? this.container.id : this._instanceId || (this._instanceId = Math.random().toString(36).slice(2));
+        return `${key}:${suffix}`;
+      }
+      return key;
+    }
+
+    _loadPersistedStyleState() {
+      const key = this._stylePersistKey();
+      if (!key || typeof window === 'undefined' || !window.localStorage) return null;
+      try {
+        const raw = window.localStorage.getItem(key);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') return parsed;
+      } catch (err) {
+        console.warn('[VanillaGrid] Failed to read persisted style state', err);
+      }
+      return null;
+    }
+
+    _persistStyleState() {
+      if (!this._styleControlsEnabled()) return;
+      const key = this._stylePersistKey();
+      if (!key || typeof window === 'undefined' || !window.localStorage) return;
+      try {
+        const payload = {
+          theme: this.styleState.theme,
+          density: this.styleState.density,
+          striped: !!this.styleState.striped,
+        };
+        window.localStorage.setItem(key, JSON.stringify(payload));
+      } catch (err) {
+        console.warn('[VanillaGrid] Failed to persist style state', err);
+      }
+    }
+
+    _extractThemeFromClassName() {
+      if (!this.root || !this.root.className) return null;
+      const match = String(this.root.className).match(/vg-theme-([a-z0-9-]+)/i);
+      return match ? this._normalizeThemeValue(match[1]) : null;
+    }
+
+    _initStyleState() {
+      const persisted = this._styleControlsEnabled() ? this._loadPersistedStyleState() : null;
+      const classTheme = this._extractThemeFromClassName();
+      const initialTheme = this._normalizeThemeValue((persisted && persisted.theme) || this.opts.theme || classTheme || VG_STYLE_DEFAULT_STATE.theme);
+      const densityOpt = (persisted && persisted.density) || this.opts.density || (this.root.classList.contains('vg-compact') ? 'compact' : VG_STYLE_DEFAULT_STATE.density);
+      const density = densityOpt === 'compact' ? 'compact' : 'comfortable';
+      const striped = (persisted && typeof persisted.striped === 'boolean') ? persisted.striped : (this.opts.striped || this.root.classList.contains('vg-striped'));
+
+      this.styleState = {
+        theme: initialTheme || 'light',
+        density,
+        striped: !!striped,
+      };
+
+      this._applyStyleState();
+      if (this._styleControlsEnabled()) {
+        this._persistStyleState();
+      }
+    }
+
+    _applyStyleState() {
+      if (!this.root) return;
+      const themeDefs = this._getThemeDefs();
+      const themeClassNames = themeDefs.map(def => `vg-theme-${def.value}`);
+      themeClassNames.push('vg-theme-light', 'vg-theme-dark', 'vg-theme-dark-base');
+      themeClassNames.forEach(cls => this.root.classList.remove(cls));
+
+      const themeValue = this.styleState.theme || 'light';
+      const matchedTheme = themeDefs.find(def => def.value === themeValue) || themeDefs.find(def => def.value === 'light');
+      const appliedTheme = matchedTheme ? matchedTheme.value : 'light';
+
+      if (appliedTheme === 'light') {
+        this.root.classList.add('vg-theme-light');
+      } else {
+        this.root.classList.add(`vg-theme-${appliedTheme}`);
+        if (matchedTheme && matchedTheme.dark) {
+          this.root.classList.add('vg-theme-dark-base');
+        }
+      }
+
+      this.root.classList.toggle('vg-compact', this.styleState.density === 'compact');
+      this.root.classList.toggle('vg-striped', !!this.styleState.striped);
+
+      this.opts.theme = appliedTheme;
+      this.opts.density = this.styleState.density;
+      this.opts.striped = !!this.styleState.striped;
+
+      this._syncStyleControlsUI();
+    }
+
+    _updateStyleState(partial) {
+      const next = Object.assign({}, this.styleState || VG_STYLE_DEFAULT_STATE, partial);
+      next.theme = this._normalizeThemeValue(next.theme) || 'light';
+      next.density = next.density === 'compact' ? 'compact' : 'comfortable';
+      next.striped = !!next.striped;
+      this.styleState = next;
+      this._applyStyleState();
+      if (this._styleControlsEnabled()) this._persistStyleState();
+    }
+
+    _styleControlsMarkup() {
+      if (!this._styleControlsEnabled()) return '';
+      const themes = this._getThemeDefs();
+      const currentTheme = this.styleState?.theme || 'light';
+      const themeOptions = themes.map(def =>
+        `<option value="${this._escAttr(def.value)}"${def.value === currentTheme ? ' selected' : ''}>${this._esc(def.label)}</option>`
+      ).join('');
+      const density = this.styleState?.density === 'compact' ? 'compact' : 'comfortable';
+      const striped = !!this.styleState?.striped;
+      const persistKey = this._stylePersistKey();
+
+      return `<div class="vg-settings">
+        <button class="vg-btn vg-settings-btn" type="button" aria-haspopup="true" aria-expanded="false">⚙ Settings</button>
+        <div class="vg-settings-panel" role="menu">
+          <div class="vg-settings-group">
+            <label>Theme</label>
+            <select class="vg-settings-theme">
+              ${themeOptions}
+            </select>
+          </div>
+          <div class="vg-settings-group">
+            <label>Density</label>
+            <select class="vg-settings-density">
+              <option value="comfortable"${density === 'comfortable' ? ' selected' : ''}>Comfortable</option>
+              <option value="compact"${density === 'compact' ? ' selected' : ''}>Compact</option>
+            </select>
+          </div>
+          <div class="vg-settings-group">
+            <label class="vg-settings-checkbox">
+              <input type="checkbox" class="vg-settings-striped"${striped ? ' checked' : ''} />
+              <span>Striped rows</span>
+            </label>
+          </div>
+          ${persistKey ? '<div class="vg-settings-divider"></div><div class="vg-settings-meta">Saved for this browser.</div>' : ''}
+        </div>
+      </div>`;
+    }
+
+    _bindStyleControls(container) {
+      if (!this._styleControlsEnabled() || !container) return;
+      const wrappers = container.querySelectorAll('.vg-settings');
+      if (!wrappers.length) return;
+
+      wrappers.forEach(wrapper => {
+        const btn = wrapper.querySelector('.vg-settings-btn');
+        const panel = wrapper.querySelector('.vg-settings-panel');
+        if (!btn || !panel) return;
+
+        const closeCurrent = () => {
+          panel.classList.remove('open');
+          btn.setAttribute('aria-expanded', 'false');
+          if (!this.root.querySelector('.vg-settings-panel.open')) {
+            this._detachSettingsDocHandler();
+          }
+        };
+
+        btn.onclick = (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const isOpen = panel.classList.contains('open');
+          if (isOpen) {
+            closeCurrent();
+          } else {
+            this._closeAllSettingsPanels(wrapper);
+            panel.classList.add('open');
+            btn.setAttribute('aria-expanded', 'true');
+            this._ensureSettingsDocHandler();
+          }
+        };
+
+        panel.onclick = (event) => event.stopPropagation();
+        panel.onkeydown = (event) => {
+          if (event.key === 'Escape') {
+            closeCurrent();
+            btn.focus();
+          }
+        };
+
+        const themeSelect = panel.querySelector('.vg-settings-theme');
+        if (themeSelect) {
+          themeSelect.onchange = (event) => {
+            this._updateStyleState({ theme: this._normalizeThemeValue(event.target.value) || 'light' });
+          };
+        }
+
+        const densitySelect = panel.querySelector('.vg-settings-density');
+        if (densitySelect) {
+          densitySelect.onchange = (event) => {
+            this._updateStyleState({ density: event.target.value === 'compact' ? 'compact' : 'comfortable' });
+          };
+        }
+
+        const stripedToggle = panel.querySelector('.vg-settings-striped');
+        if (stripedToggle) {
+          stripedToggle.onchange = (event) => {
+            this._updateStyleState({ striped: !!event.target.checked });
+          };
+        }
+      });
+
+      this._syncStyleControlsUI();
+    }
+
+    _closeAllSettingsPanels(except) {
+      const wrappers = this.root ? this.root.querySelectorAll('.vg-settings') : [];
+      wrappers.forEach(wrapper => {
+        if (except && wrapper === except) return;
+        const btn = wrapper.querySelector('.vg-settings-btn');
+        const panel = wrapper.querySelector('.vg-settings-panel');
+        if (panel) panel.classList.remove('open');
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+      });
+      if (!this.root || !this.root.querySelector('.vg-settings-panel.open')) {
+        this._detachSettingsDocHandler();
+      }
+    }
+
+    _ensureSettingsDocHandler() {
+      if (this._onDocClickSettings) return;
+      this._onDocClickSettings = (event) => {
+        if (!this.root) return;
+        if (!this.root.contains(event.target) || !event.target.closest('.vg-settings')) {
+          this._closeAllSettingsPanels();
+        }
+      };
+      document.addEventListener('click', this._onDocClickSettings);
+    }
+
+    _detachSettingsDocHandler() {
+      if (!this._onDocClickSettings) return;
+      document.removeEventListener('click', this._onDocClickSettings);
+      this._onDocClickSettings = null;
+    }
+
+    _syncStyleControlsUI() {
+      if (!this._styleControlsEnabled() || !this.root || !this.styleState) return;
+      const wrappers = this.root.querySelectorAll('.vg-settings');
+      wrappers.forEach(wrapper => {
+        const themeSelect = wrapper.querySelector('.vg-settings-theme');
+        if (themeSelect && themeSelect.value !== (this.styleState.theme || 'light')) {
+          const targetValue = this.styleState.theme || 'light';
+          if (Array.from(themeSelect.options).some(opt => opt.value === targetValue)) {
+            themeSelect.value = targetValue;
+          }
+        }
+        const densitySelect = wrapper.querySelector('.vg-settings-density');
+        if (densitySelect) densitySelect.value = this.styleState.density === 'compact' ? 'compact' : 'comfortable';
+        const stripedToggle = wrapper.querySelector('.vg-settings-striped');
+        if (stripedToggle) stripedToggle.checked = !!this.styleState.striped;
       });
     }
 
@@ -2721,6 +3065,8 @@
       const toolbar = this.root.querySelector('.vg-toolbar');
       if (!toolbar) return;
       
+      this._closeAllSettingsPanels();
+
       // Clear existing toolbar content
       toolbar.innerHTML = '';
       
@@ -2794,6 +3140,14 @@
         </div>
       `;
       
+      if (this._styleControlsEnabled()) {
+        const headerActions = pivotControls.querySelector('.vg-pivot-header-actions');
+        if (headerActions) {
+          headerActions.insertAdjacentHTML('beforeend', this._styleControlsMarkup());
+          this._bindStyleControls(headerActions);
+        }
+      }
+
       toolbar.appendChild(pivotControls);
       
       // Populate available fields

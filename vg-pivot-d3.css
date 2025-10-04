@@ -46,10 +46,10 @@
 }
 
 /* Dark theme tweaks */
-.vg-theme-dark .vg-pivot-chart-panel {
+.vg-theme-dark-base .vg-pivot-chart-panel {
   background: var(--vg-bg);
   border-color: var(--vg-border);
 }
-.vg-theme-dark .vg-pivot-chart {
+.vg-theme-dark-base .vg-pivot-chart {
   border-color: var(--vg-border);
 }
