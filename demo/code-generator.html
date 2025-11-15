@@ -337,6 +337,12 @@
               Context Menu
             </label>
           </div>
+          <div class="config-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="pivotD3" />
+              Enable Pivot (D3)
+            </label>
+          </div>
         </div>
 
         <div class="config-section">
@@ -368,6 +374,7 @@
           <div class="config-item">
             <label>Page Sizes (comma separated)</label>
             <input type="text" id="pageSizes" value="10,25,50,100" />
+            <div id="pageSizesError" style="color:#b91c1c;font-size:12px;display:none;margin-top:6px;">Please enter comma-separated positive integers (e.g. 10,25,50)</div>
           </div>
           
           <button class="btn" onclick="updatePreview()">🔄 Update Preview</button>
@@ -465,6 +472,7 @@
         resizableColumns: document.getElementById('resizableColumns').checked,
         editableRows: document.getElementById('editableRows').checked,
         contextMenu: document.getElementById('contextMenu').checked
+        ,pivotD3: document.getElementById('pivotD3') ? document.getElementById('pivotD3').checked : false
       };
     }
 
@@ -520,7 +528,7 @@
       if (!config.pagination) {
         code += `,\n${indent}pagination: false`;
       } else if (config.pageSizes) {
-        const sizes = (config.pageSizes || '').split(',').map(s => parseInt(s.trim(), 10)).filter(n => Number.isFinite(n));
+        const sizes = parsePageSizes(config.pageSizes);
         if (sizes.length) {
           code += `,\n${indent}pageSizes: [${sizes.join(', ')}]`;
         }
@@ -529,6 +537,10 @@
       if (config.resizableColumns) code += `,\n${indent}resizableColumns: true`;
       if (config.editableRows) code += `,\n${indent}editableRows: true`;
       if (!config.contextMenu) code += `,\n${indent}contextMenu: false`;
+
+      if (config.pivotD3) {
+        code += `\n// Pivot (D3) plugin: vg-pivot-d3.js will be included when generating the complete example.`;
+      }
 
       if (config.enableSettings === false) {
         code += `,\n${indent}styleControls: false`;
@@ -582,61 +594,146 @@
       }
     }
 
-    function generateCompleteCode(config) {
-      // Use absolute paths so new tab can fetch local dist assets reliably
-      let cssUrl, jsUrl;
-      // When opened via file://, location.origin is unreliable — fall back to CDN
-      if (location.protocol === 'file:' || !location.origin) {
-        cssUrl = 'https://cdn.jsdelivr.net/gh/simonwaldherr/vanillagrid.js@main/dist/vanillagrid.min.css';
-        jsUrl = 'https://cdn.jsdelivr.net/gh/simonwaldherr/vanillagrid.js@main/dist/vanillagrid.min.js';
-      } else {
-        cssUrl = `${location.origin}/dist/vanillagrid.min.css`;
-        jsUrl = `${location.origin}/dist/vanillagrid.min.js`;
+      // Utility: parse comma-separated page sizes into numbers
+      function parsePageSizes(input) {
+        if (!input) return [];
+        return (input || '').split(',')
+          .map(s => parseInt(s.trim(), 10))
+          .filter(n => Number.isFinite(n) && n > 0);
       }
 
-      // Avoid nesting template literals; use concatenation and escape closing script tags
-      function escapeClosingScript(s) {
+      // Build absolute asset URLs (use CDN fallback when running via file://)
+      function buildAssetUrls() {
+        let cssUrl, jsUrl;
+        if (location.protocol === 'file:' || !location.origin) {
+          cssUrl = 'https://cdn.jsdelivr.net/gh/simonwaldherr/vanillagrid.js@main/dist/vanillagrid.min.css';
+          jsUrl = 'https://cdn.jsdelivr.net/gh/simonwaldherr/vanillagrid.js@main/dist/vanillagrid.min.js';
+          // pivot plugin lives at repo root
+          var pivotCssUrl = 'https://cdn.jsdelivr.net/gh/simonwaldherr/vanillagrid.js@main/vg-pivot-d3.css';
+          var pivotJsUrl = 'https://cdn.jsdelivr.net/gh/simonwaldherr/vanillagrid.js@main/vg-pivot-d3.js';
+        } else {
+          cssUrl = `${location.origin}/dist/vanillagrid.min.css`;
+          jsUrl = `${location.origin}/dist/vanillagrid.min.js`;
+          var pivotCssUrl = `${location.origin}/vg-pivot-d3.css`;
+          var pivotJsUrl = `${location.origin}/vg-pivot-d3.js`;
+        }
+        return { cssUrl, jsUrl, pivotCssUrl, pivotJsUrl };
+      }
+
+      function escapeScriptContent(s) {
         return s.replace(/<\/script>/gi, '<\\/script>');
       }
 
-      const jsSource = escapeClosingScript(generateJSCode(config));
-    const lines = [];
-    lines.push('<!DOCTYPE html>');
-    lines.push('<html lang="en">');
-    lines.push('<head>');
-    lines.push('  <meta charset="UTF-8">');
-    lines.push('  <meta name="viewport" content="width=device-width, initial-scale=1.0">');
-    lines.push('  <title>VanillaGrid Example</title>');
-    lines.push('');
-    lines.push('  <!-- VanillaGrid CSS -->');
-    lines.push('  <link rel="stylesheet" href="' + cssUrl + '">');
-    lines.push('</head>');
-    lines.push('<body>');
-    lines.push(generateHTMLCode(config));
-    lines.push('');
-    lines.push('  <!-- VanillaGrid JS -->');
-  lines.push('  <script src="' + jsUrl + '"></scr' + 'ipt>');
-    lines.push('');
-  lines.push('  <scr' + 'ipt>');
-    jsSource.split('\n').forEach(l => lines.push('    ' + l));
-  lines.push('  </scr' + 'ipt>');
-    lines.push('</body>');
-    lines.push('</html>');
-    return lines.join('\n');
-    }
+      function buildHead(cssUrl, extraHeadLines) {
+        const extras = extraHeadLines || [];
+        return [
+          '<!DOCTYPE html>',
+          '<html lang="en">',
+          '<head>',
+          '  <meta charset="UTF-8">',
+          '  <meta name="viewport" content="width=device-width, initial-scale=1.0">',
+          '  <title>VanillaGrid Example</title>',
+          '',
+          '  <!-- VanillaGrid CSS -->',
+          `  <link rel="stylesheet" href="${cssUrl}">`
+        ].concat(extras).concat(['</head>']);
+      }
+
+      function buildBody(config) {
+        return ['<body>', generateHTMLCode(config)];
+      }
+
+      function buildScriptTagSrc(jsUrl) {
+      return '  <script src="' + jsUrl + '"></scr' + 'ipt>';
+      }
+
+      function buildInlineScript(jsSource) {
+        const lines = [];
+    lines.push('  <scr' + 'ipt>');
+        jsSource.split('\n').forEach(l => lines.push('    ' + l));
+      lines.push('  </scr' + 'ipt>');
+        return lines;
+      }
+
+      function generateCompleteCode(config) {
+          const { cssUrl, jsUrl, pivotCssUrl, pivotJsUrl } = buildAssetUrls();
+        const rawJs = generateJSCode(config);
+        const jsSource = escapeScriptContent(rawJs);
+
+        const out = [];
+          const extraHead = [];
+    if (config.pivotD3) extraHead.push(`  <link rel="stylesheet" href="${pivotCssUrl}">`);
+          out.push(...buildHead(cssUrl, extraHead));
+        out.push(...buildBody(config));
+        out.push('');
+        out.push('  <!-- VanillaGrid JS -->');
+        out.push(buildScriptTagSrc(jsUrl));
+          if (config.pivotD3) {
+            out.push(buildScriptTagSrc(pivotJsUrl));
+          }
+        out.push('');
+        out.push(...buildInlineScript(jsSource));
+        out.push('</body>');
+        out.push('</html>');
+        return out.join('\n');
+      }
+
+      // Inject pivot plugin assets into the current document for the preview
+      function injectCss(url) {
+        if (document.querySelector('link[href="' + url + '"]')) return;
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = url;
+        document.head.appendChild(link);
+      }
+
+      function injectScript(url) {
+        return new Promise((resolve, reject) => {
+          // if already present, resolve immediately
+          const existing = Array.from(document.scripts).find(s => s.src && s.src.indexOf(url) !== -1);
+          if (existing) return resolve();
+          const s = document.createElement('script');
+          s.src = url;
+          s.async = false;
+          s.onload = () => resolve();
+          s.onerror = (e) => reject(e);
+          document.head.appendChild(s);
+        });
+      }
+
+      async function ensurePivotAssetsLoaded() {
+        const { pivotCssUrl, pivotJsUrl } = buildAssetUrls();
+        try {
+          injectCss(pivotCssUrl);
+          await injectScript(pivotJsUrl);
+        } catch (e) {
+          console.warn('Failed to load pivot assets for preview:', e);
+        }
+      }
 
     async function updateCode() {
       const config = getConfig();
       document.getElementById('html-code').textContent = generateHTMLCode(config);
       document.getElementById('js-code').textContent = generateJSCode(config);
-      
-      let completeCode = generateCompleteCode(config);
-      
-  // Assets are linked; when running via file://, CDN fall back is used.
-  const status = document.getElementById('assetStatus');
-  status.textContent = (location.protocol === 'file:' || !location.origin) ? 'Assets: using CDN fallback (file://)' : 'Assets: linked to /dist/';
+      // Validate page sizes and show user-facing error if needed
+      const sizes = parsePageSizes(config.pageSizes);
+      const pageSizesErr = document.getElementById('pageSizesError');
+      if (config.pagination && config.pageSizes && sizes.length === 0) {
+        if (pageSizesErr) {
+          pageSizesErr.style.display = 'block';
+          pageSizesErr.textContent = 'Please enter comma-separated positive integers (e.g. 10,25,50)';
+        }
+      } else if (pageSizesErr) {
+        pageSizesErr.style.display = 'none';
+      }
 
-  document.getElementById('complete-code').textContent = completeCode;
+      let completeCode = generateCompleteCode(config);
+
+      // Assets are linked; when running via file://, CDN fall back is used.
+      const status = document.getElementById('assetStatus');
+      status.textContent = (location.protocol === 'file:' || !location.origin) ? 'Assets: using CDN fallback (file://)' : 'Assets: linked to /dist/';
+
+      document.getElementById('complete-code').textContent = completeCode;
   // Debug hint: useful when diagnosing escaping errors
   if (typeof console !== 'undefined') console.debug('Generated HTML length:', completeCode.length);
       return completeCode;
@@ -711,7 +808,7 @@
 
       gridConfig.pagination = !!config.pagination;
       if (config.pageSizes) {
-        const sizes = (config.pageSizes || '').split(',').map(s => parseInt(s.trim(), 10)).filter(n => Number.isFinite(n));
+        const sizes = parsePageSizes(config.pageSizes);
         if (sizes.length) gridConfig.pageSizes = sizes;
       }
 
@@ -741,6 +838,10 @@
       }
 
       try {
+        if (config.pivotD3) {
+          // ensure pivot plugin is available before initializing the grid
+          await ensurePivotAssetsLoaded();
+        }
         currentGrid = new VanillaGrid(container, gridConfig);
       } catch (err) {
         console.error('Failed to create VanillaGrid preview:', err);
@@ -767,13 +868,16 @@
       document.getElementById('selection').checked = false;
       document.getElementById('striped').checked = false;
       document.getElementById('density').value = 'comfortable';
-  document.getElementById('pagination').checked = true;
+    document.getElementById('pagination').checked = true;
+    document.getElementById('pivotD3').checked = false; // Set pivotD3 to false
   document.getElementById('pageSizes').value = '10,25,50,100';
   document.getElementById('resizableColumns').checked = false;
   document.getElementById('editableRows').checked = false;
   document.getElementById('contextMenu').checked = true;
   document.getElementById('enableSettings').checked = true;
       updatePreview();
+      const pageSizesErr = document.getElementById('pageSizesError');
+      if (pageSizesErr) pageSizesErr.style.display = 'none';
     }
 
     function switchTab(tabName, el) {
@@ -831,7 +935,7 @@
 
     // Wire up inputs for live update (debounced)
     (function wireInputs() {
-  const controls = Array.from(document.querySelectorAll('#gridId, #pageSize, #theme, #filterable, #sortable, #groupable, #exporting, #columnsMenu, #selection, #striped, #density, #enableSettings, #pagination, #pageSizes, #resizableColumns, #editableRows, #contextMenu'));
+    const controls = Array.from(document.querySelectorAll('#gridId, #pageSize, #theme, #filterable, #sortable, #groupable, #exporting, #columnsMenu, #selection, #striped, #density, #enableSettings, #pagination, #pageSizes, #resizableColumns, #editableRows, #contextMenu, #pivotD3'));
       const updater = debounce(updatePreview, 220);
       controls.forEach(c => {
         c.addEventListener('change', updater);
