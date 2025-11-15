@@ -2,14 +2,130 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>VanillaGrid • Remote</title>
+  <title>VanillaGrid • Remote Data</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <script src="../dist/vanillagrid.umd.js"></script>
-  <link rel="stylesheet" href="../vanillagrid.css" />
+  <script src="../dist/vanillagrid.min.js"></script>
+  <link rel="stylesheet" href="../dist/vanillagrid.min.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body { 
+      padding: 24px; 
+      background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+      font-family: system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .header {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .header h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      color: #111827;
+    }
+    .header p {
+      margin: 0 0 16px;
+      color: #6b7280;
+      font-size: 16px;
+    }
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .feature {
+      background: #ecfeff;
+      padding: 12px;
+      border-radius: 8px;
+      border-left: 3px solid #06b6d4;
+    }
+    .feature strong {
+      color: #0e7490;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .feature span {
+      color: #6b7280;
+      font-size: 13px;
+    }
+    .grid-container {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .info-banner {
+      background: #cffafe;
+      padding: 16px;
+      border-radius: 8px;
+      border: 2px solid #67e8f9;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .info-banner-icon {
+      font-size: 24px;
+    }
+    .info-banner-text {
+      flex: 1;
+      color: #164e63;
+      font-size: 14px;
+    }
+    @media (max-width: 768px) {
+      body { padding: 16px; }
+      .header { padding: 16px; }
+      .header h1 { font-size: 22px; }
+      .grid-container { padding: 12px; }
+      .features { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
-<body style="padding:24px;background:#f5f7fb;">
-  <h1>Remote (Server-side) Grid</h1>
-  <div id="remote-grid"></div>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🌐 Remote Data Grid</h1>
+      <p>Server-side pagination, sorting, and filtering with async data loading</p>
+      
+      <div class="features">
+        <div class="feature">
+          <strong>⚡ Server-side Pagination</strong>
+          <span>Load only what you need</span>
+        </div>
+        <div class="feature">
+          <strong>🔄 Async Operations</strong>
+          <span>Non-blocking data loading</span>
+        </div>
+        <div class="feature">
+          <strong>📊 250 Total Rows</strong>
+          <span>Efficiently managed remotely</span>
+        </div>
+        <div class="feature">
+          <strong>🔍 Server Filtering</strong>
+          <span>Filter at the source</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-banner">
+      <div class="info-banner-icon">💡</div>
+      <div class="info-banner-text">
+        <strong>Simulated Remote API:</strong> This demo simulates server-side operations with a 120ms delay. Try sorting, filtering, and navigating pages to see how the grid handles async data loading with loading states.
+      </div>
+    </div>
+
+    <div class="grid-container">
+      <div id="remote-grid"></div>
+    </div>
+  </div>
   <script>
     const ALL = Array.from({length: 250}, (_,i) => ({ id: i+1, name: `Item ${i+1}`, price: Math.round(Math.random()*1000)/100, cat: ['A','B','C'][i%3] }));
 

@@ -2,23 +2,176 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>VanillaGrid • Pivot Table</title>
+  <title>VanillaGrid • Advanced Pivot Table</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <script src="../dist/vanillagrid.umd.js"></script>
-  <link rel="stylesheet" href="../vanillagrid.css" />
+  <script src="../dist/vanillagrid.min.js"></script>
+  <script src="../dist/vg-pivot-d3.min.js"></script>
+  <link rel="stylesheet" href="../dist/vanillagrid.min.css" />
+  <link rel="stylesheet" href="../dist/vg-pivot-d3.min.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body { 
+      padding: 24px; 
+      background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+      font-family: system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+    .header {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .header h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      color: #111827;
+    }
+    .header p {
+      margin: 0 0 16px;
+      color: #6b7280;
+      font-size: 16px;
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .feature-card {
+      background: #eff6ff;
+      padding: 16px;
+      border-radius: 8px;
+      text-align: center;
+      border: 2px solid #bfdbfe;
+    }
+    .feature-card-icon {
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+    .feature-card-title {
+      font-weight: 600;
+      color: #1e40af;
+      margin-bottom: 4px;
+    }
+    .feature-card-desc {
+      font-size: 13px;
+      color: #6b7280;
+    }
+    .controls {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .controls h3 {
+      margin: 0 0 12px;
+      font-size: 18px;
+      color: #111827;
+    }
+    .btn-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .btn-primary {
+      padding: 10px 16px;
+      border: none;
+      background: #3b82f6;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .btn-primary:hover {
+      background: #2563eb;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+    }
+    .btn-secondary {
+      padding: 8px 14px;
+      border: 1px solid #d1d5db;
+      background: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .btn-secondary:hover {
+      background: #eff6ff;
+      border-color: #3b82f6;
+      color: #1d4ed8;
+    }
+    .grid-container {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    @media (max-width: 768px) {
+      body { padding: 16px; }
+      .header { padding: 16px; }
+      .header h1 { font-size: 22px; }
+      .controls { padding: 16px; }
+      .grid-container { padding: 12px; }
+      .features-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
 </head>
-<body style="padding:24px;background:#f5f7fb;">
-  <h1>Pivot Table</h1>
-  <p style="color:#6b7280;">Interactive pivot table builder with drag & drop interface.</p>
-  
-  <div style="display:flex; gap:8px; margin-bottom:16px;">
-    <button id="enable-pivot" style="padding:8px 12px; border:1px solid #3b82f6; background:#3b82f6; color:white; border-radius:8px; cursor:pointer;">Enable Pivot Mode</button>
-    <button id="load-sample" style="padding:8px 12px; border:1px solid #e5e7eb; background:#fff; border-radius:8px; cursor:pointer;">Load Sample Data</button>
-    <button id="quarterly-analysis" style="padding:8px 12px; border:1px solid #e5e7eb; background:#fff; border-radius:8px; cursor:pointer;">Quarterly Analysis</button>
-    <button id="regional-analysis" style="padding:8px 12px; border:1px solid #e5e7eb; background:#fff; border-radius:8px; cursor:pointer;">Regional Analysis</button>
-  </div>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📊 Advanced Pivot Table Builder</h1>
+      <p>Excel-like pivot tables with drag-and-drop interface, advanced filtering, and comprehensive export capabilities</p>
+      
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-card-icon">🎯</div>
+          <div class="feature-card-title">Drag & Drop</div>
+          <div class="feature-card-desc">Intuitive field management</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-icon">🔍</div>
+          <div class="feature-card-title">Advanced Filtering</div>
+          <div class="feature-card-desc">Real-time data filtering</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-icon">📊</div>
+          <div class="feature-card-title">Smart Aggregations</div>
+          <div class="feature-card-desc">Multiple calculation types</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-icon">💾</div>
+          <div class="feature-card-title">Export Ready</div>
+          <div class="feature-card-desc">One-click CSV export</div>
+        </div>
+      </div>
+    </div>
 
-  <div id="pivot-grid"></div>
+    <div class="controls">
+      <h3>Quick Analysis Templates</h3>
+      <div class="btn-group">
+        <button id="enable-pivot" class="btn-primary">🎯 Enable Pivot Mode</button>
+        <button id="load-sample" class="btn-secondary">🔄 Reload Data</button>
+        <button id="quarterly-analysis" class="btn-secondary">💰 Revenue by Quarter</button>
+        <button id="regional-analysis" class="btn-secondary">📍 Regional Performance</button>
+        <button id="channel-analysis" class="btn-secondary">🛒 Channel Analysis</button>
+        <button id="category-analysis" class="btn-secondary">📦 Category Breakdown</button>
+      </div>
+    </div>
+
+    <div class="grid-container">
+      <div id="pivot-grid"></div>
+    </div>
+  </div>
 
   <script>
     // Generate sample e-commerce data
@@ -125,6 +278,32 @@
         aggregations: {
           revenue: 'sum',
           units: 'sum'
+        }
+      });
+    };
+
+    document.getElementById('channel-analysis').onclick = () => {
+      grid.enablePivot({
+        rows: ['channel'],
+        columns: ['category'],
+        values: ['revenue', 'profit', 'units'],
+        aggregations: {
+          revenue: 'sum',
+          profit: 'sum',
+          units: 'sum'
+        }
+      });
+    };
+
+    document.getElementById('category-analysis').onclick = () => {
+      grid.enablePivot({
+        rows: ['category', 'product'],
+        columns: ['region'],
+        values: ['revenue', 'cost', 'profit'],
+        aggregations: {
+          revenue: 'sum',
+          cost: 'sum',
+          profit: 'sum'
         }
       });
     };

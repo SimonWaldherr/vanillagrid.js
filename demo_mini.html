@@ -1,25 +1,103 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>VanillaGrid • Ultra Kompakt Demo</title>
+  <title>VanillaGrid • Ultra Compact Demo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <script src="https://simonwaldherr.github.io/vanillagrid.js/vanillagrid.js"></script>
-  <link rel="stylesheet" href="https://simonwaldherr.github.io/vanillagrid.js/vanillagrid.css" />
+  <script src="./dist/vanillagrid.min.js"></script>
+  <link rel="stylesheet" href="./dist/vanillagrid.min.css" />
   <style>
-    body { font-family: system-ui; margin: 0; padding: 12px; background: #f8f9fa; font-size: 13px; }
-    .demo { background: white; margin-bottom: 16px; border-radius: 6px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    .demo h3 { margin: 0; padding: 8px 12px; background: #667eea; color: white; font-size: 13px; font-weight: 600; }
-    .btn { padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer; font-size: 11px; }
-    .btn:hover { background: #f0f2ff; border-color: #667eea; }
-    h1 { text-align: center; margin: 0 0 16px; color: #333; font-size: 18px; }
-    @media (max-width: 768px) { body { padding: 8px; } .demo { margin-bottom: 12px; } }
+    * { box-sizing: border-box; }
+    body { 
+      font-family: system-ui, -apple-system, sans-serif; 
+      margin: 0; 
+      padding: 16px; 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 24px;
+    }
+    .header h1 { 
+      margin: 0 0 8px; 
+      font-size: 32px; 
+      font-weight: 700;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .header p {
+      margin: 0;
+      font-size: 16px;
+      opacity: 0.95;
+    }
+    .demo { 
+      background: white; 
+      border-radius: 12px; 
+      overflow: hidden; 
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    }
+    .demo-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .demo-header h2 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .demo-badge {
+      background: rgba(255,255,255,0.2);
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .demo-info {
+      padding: 16px 20px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 14px;
+      color: #6b7280;
+    }
+    .demo-info strong {
+      color: #111827;
+    }
+    @media (max-width: 768px) { 
+      body { padding: 12px; }
+      .header h1 { font-size: 24px; }
+      .header p { font-size: 14px; }
+      .demo { border-radius: 8px; }
+      .demo-header { padding: 12px 16px; }
+      .demo-header h2 { font-size: 16px; }
+      .demo-info { padding: 12px 16px; font-size: 13px; }
+    }
   </style>
 </head>
 <body>
-  <h1>VanillaGrid</h1>
-  <div class="demo">
+  <div class="container">
+    <div class="header">
+      <h1>⚡ VanillaGrid</h1>
+      <p>Minimal setup, maximum power – See all features in action</p>
+    </div>
+    <div class="demo">
+      <div class="demo-header">
+        <h2>🎨 Rich Cell Types Demo</h2>
+        <span class="demo-badge">All-in-One</span>
+      </div>
+      <div class="demo-info">
+        <strong>Features:</strong> Images, Ratings (⭐), Progress Bars, Badges, Links, Buttons, Built-in Settings Panel
+      </div>
       <div id="g2"></div>
+    </div>
   </div>
   <script>
     const data = [

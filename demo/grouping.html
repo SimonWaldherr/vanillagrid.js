@@ -4,13 +4,108 @@
   <meta charset="utf-8" />
   <title>VanillaGrid • Grouping & Aggregation</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <script src="../dist/vanillagrid.umd.js"></script>
-  <link rel="stylesheet" href="../vanillagrid.css" />
+  <script src="../dist/vanillagrid.min.js"></script>
+  <link rel="stylesheet" href="../dist/vanillagrid.min.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body { 
+      padding: 24px; 
+      background: linear-gradient(135deg, #ec4899 0%, #be185d 100%);
+      font-family: system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .header {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .header h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      color: #111827;
+    }
+    .header p {
+      margin: 0 0 16px;
+      color: #6b7280;
+      font-size: 16px;
+    }
+    .aggregations {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .agg-item {
+      background: #fdf2f8;
+      padding: 12px;
+      border-radius: 8px;
+      text-align: center;
+      border: 2px solid #fbcfe8;
+    }
+    .agg-label {
+      font-size: 12px;
+      color: #9f1239;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .agg-value {
+      font-size: 16px;
+      color: #881337;
+      font-weight: 700;
+    }
+    .grid-container {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    @media (max-width: 768px) {
+      body { padding: 16px; }
+      .header { padding: 16px; }
+      .header h1 { font-size: 22px; }
+      .grid-container { padding: 12px; }
+      .aggregations { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
 </head>
-<body style="padding:24px;background:#f5f7fb;">
-  <h1>Grouping & Aggregation</h1>
-  <p style="color:#6b7280;">Group by category and see sum, min, max aggregations.</p>
-  <div id="group-grid"></div>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📦 Grouping & Aggregation</h1>
+      <p>Group data by category with automatic sum, min, max calculations and expandable groups</p>
+      
+      <div class="aggregations">
+        <div class="agg-item">
+          <div class="agg-label">Sum</div>
+          <div class="agg-value">Total values</div>
+        </div>
+        <div class="agg-item">
+          <div class="agg-label">Min</div>
+          <div class="agg-value">Minimum value</div>
+        </div>
+        <div class="agg-item">
+          <div class="agg-label">Max</div>
+          <div class="agg-value">Maximum value</div>
+        </div>
+        <div class="agg-item">
+          <div class="agg-label">Average</div>
+          <div class="agg-value">Mean value</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-container">
+      <div id="group-grid"></div>
+    </div>
+  </div>
   <script>
     const sales = Array.from({length: 50}, (_, i) => {
       const categories = ['Electronics', 'Clothing', 'Books', 'Home & Garden', 'Sports'];

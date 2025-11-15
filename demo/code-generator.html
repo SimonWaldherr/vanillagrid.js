@@ -1,0 +1,861 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>VanillaGrid • Code Generator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="../dist/vanillagrid.min.js"></script>
+  <link rel="stylesheet" href="../dist/vanillagrid.min.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body { 
+      padding: 24px; 
+      background: linear-gradient(135deg, #a4a4a4 0%, #3e3e3e 100%);
+      font-family: system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+    .header {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .header h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      color: #111827;
+    }
+    .header p {
+      margin: 0;
+      color: #6b7280;
+      font-size: 16px;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 400px 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    .config-panel {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      height: fit-content;
+      position: sticky;
+      top: 20px;
+    }
+    .config-section {
+      margin-bottom: 20px;
+    }
+    .config-section:last-child {
+      margin-bottom: 0;
+    }
+    .config-section h3 {
+      margin: 0 0 12px;
+      font-size: 16px;
+      color: #111827;
+      font-weight: 600;
+    }
+    .config-item {
+      margin-bottom: 12px;
+    }
+    .config-item label {
+      display: block;
+      font-size: 13px;
+      color: #374151;
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+    .config-item input[type="text"],
+    .config-item input[type="number"],
+    .config-item select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    .config-item input[type="checkbox"] {
+      margin-right: 8px;
+    }
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      font-size: 14px;
+      color: #374151;
+      cursor: pointer;
+    }
+    .btn {
+      width: 100%;
+      padding: 10px 16px;
+      border: none;
+      background: #14b8a6;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.2s;
+      margin-bottom: 8px;
+    }
+    .btn:hover {
+      background: #0d9488;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(20, 184, 166, 0.3);
+    }
+    .btn-secondary {
+      background: #6b7280;
+    }
+    .btn-secondary:hover {
+      background: #4b5563;
+    }
+    .preview-panel {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .preview-panel h3 {
+      margin: 0 0 16px;
+      font-size: 18px;
+      color: #111827;
+      font-weight: 600;
+    }
+    .code-panel {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .code-panel h3 {
+      margin: 0 0 16px;
+      font-size: 18px;
+      color: #111827;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .code-container {
+      background: #1f2937;
+      padding: 16px;
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+    /* Preview grid appearance */
+    #preview-grid {
+      min-height: 320px;
+      border: 1px solid #e5e7eb;
+      padding: 12px;
+      border-radius: 8px;
+      overflow: auto;
+      background: white;
+    }
+    pre {
+      margin: 0;
+      color: #f9fafb;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .copy-btn {
+      padding: 6px 12px;
+      border: 1px solid #d1d5db;
+      background: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    .copy-btn:hover {
+      background: #f3f4f6;
+      border-color: #14b8a6;
+    }
+    .copy-btn.copied {
+      background: #d1fae5;
+      border-color: #10b981;
+      color: #065f46;
+    }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      border-bottom: 2px solid #e5e7eb;
+    }
+    .tab {
+      padding: 8px 16px;
+      border: none;
+      background: transparent;
+      color: #6b7280;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.2s;
+    }
+    .tab:hover {
+      color: #111827;
+    }
+    .tab.active {
+      color: #14b8a6;
+      border-bottom-color: #14b8a6;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .success-message {
+      background: #d1fae5;
+      color: #065f46;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      font-size: 14px;
+      display: none;
+    }
+    .success-message.show {
+      display: block;
+    }
+    @media (max-width: 1200px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+      .config-panel {
+        position: static;
+      }
+    }
+    @media (max-width: 768px) {
+      body { padding: 16px; }
+      .header { padding: 16px; }
+      .header h1 { font-size: 22px; }
+      .preview-panel, .code-panel, .config-panel { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>⚙️ VanillaGrid Code Generator</h1>
+      <p>Configure your grid visually and generate production-ready code with live preview</p>
+    </div>
+
+    <div class="layout">
+      <div class="config-panel">
+        <div class="config-section">
+          <h3>📋 Basic Configuration</h3>
+          <div class="config-item">
+            <label>Grid ID</label>
+            <input type="text" id="gridId" value="my-grid" />
+          </div>
+          <div class="config-item">
+            <label>Page Size</label>
+            <input type="number" id="pageSize" value="10" min="5" max="100" />
+          </div>
+          <div class="config-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="pagination" checked />
+              Enable Pagination
+            </label>
+          </div>
+          <div class="config-item">
+            <label>Theme</label>
+            <select id="theme">
+              <option value="">Light (Default)</option>
+              <option value="dark-blue">Dark Blue</option>
+              <option value="dark-grey">Dark Grey</option>
+              <option value="midnight">Midnight</option>
+              <option value="forest">Forest</option>
+              <option value="ocean">Ocean</option>
+              <option value="sand">Sand</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="config-section">
+          <h3>✨ Features</h3>
+          <div class="config-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="filterable" checked />
+              Enable Filtering
+            </label>
+          </div>
+          <div class="config-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="sortable" checked />
+              Enable Sorting
+            </label>
+          </div>
+          <div class="config-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="groupable" />
+              Enable Grouping
+            </label>
+          </div>
+          <div class="config-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="exporting" />
+              Enable Export (CSV/MD)
+            </label>
+          </div>
+          <div class="config-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="columnsMenu" checked />
+              Enable Columns Menu
+            </label>
+          </div>
+          <div class="config-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="selection" />
+              Enable Row Selection
+            </label>
+          </div>
+          <div class="config-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="resizableColumns" />
+              Resizable Columns
+            </label>
+          </div>
+          <div class="config-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="editableRows" />
+              Editable Rows
+            </label>
+          </div>
+          <div class="config-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="contextMenu" checked />
+              Context Menu
+            </label>
+          </div>
+        </div>
+
+        <div class="config-section">
+          <h3>🎨 Style Options</h3>
+          <div class="config-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="striped" />
+              Striped Rows
+            </label>
+          </div>
+          <div class="config-item">
+            <label>Density</label>
+            <select id="density">
+              <option value="comfortable">Comfortable</option>
+              <option value="compact">Compact</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="config-item">
+          <label class="checkbox-label">
+            <input type="checkbox" id="enableSettings" checked />
+            Enable Settings Button
+          </label>
+        </div>
+
+        <div class="config-section">
+          <h3>📦 Pagination Options</h3>
+          <div class="config-item">
+            <label>Page Sizes (comma separated)</label>
+            <input type="text" id="pageSizes" value="10,25,50,100" />
+          </div>
+          
+          <button class="btn" onclick="updatePreview()">🔄 Update Preview</button>
+          <button class="btn btn-secondary" onclick="resetConfig()">↺ Reset to Defaults</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="preview-panel">
+          <h3>👁️ Live Preview</h3>
+          <div id="preview-grid" aria-live="polite"></div>
+        </div>
+
+        <div class="code-panel" style="margin-top: 20px;">
+          <h3>
+            💻 Generated Code
+            <span>
+              <button id="openBtn" class="copy-btn" onclick="openInNewTab()" title="Open complete example in new tab" aria-label="Open example in new tab">↗️ Open</button>
+              <button id="copyBtn" class="copy-btn" onclick="copyCode()" title="Copy generated code to clipboard" aria-label="Copy generated code">📋 Copy Code</button>
+            </span>
+          </h3>
+          
+          <div class="success-message" id="copySuccess">
+            ✅ Code copied to clipboard!
+          </div>
+
+          <div id="assetStatus" style="font-size:12px;color:#6b7280;margin-top:8px;">Assets: unknown</div>
+
+          <div class="tabs" role="tablist">
+            <button type="button" class="tab active" onclick="switchTab('html', this)" role="tab" aria-controls="html-tab">HTML</button>
+            <button type="button" class="tab" onclick="switchTab('javascript', this)" role="tab" aria-controls="javascript-tab">JavaScript</button>
+            <button type="button" class="tab" onclick="switchTab('complete', this)" role="tab" aria-controls="complete-tab">Complete</button>
+          </div>
+
+          <div class="tab-content active" id="html-tab">
+            <div class="code-container">
+              <pre id="html-code"></pre>
+            </div>
+          </div>
+
+          <div class="tab-content" id="javascript-tab">
+            <div class="code-container">
+              <pre id="js-code"></pre>
+            </div>
+          </div>
+
+          <div class="tab-content" id="complete-tab">
+            <div class="code-container">
+              <pre id="complete-code"></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Sample data
+    const sampleData = [
+      { id: 1, name: 'Product A', category: 'Electronics', price: 299.99, stock: 45, status: 'In Stock' },
+      { id: 2, name: 'Product B', category: 'Clothing', price: 49.99, stock: 120, status: 'In Stock' },
+      { id: 3, name: 'Product C', category: 'Books', price: 19.99, stock: 8, status: 'Low Stock' },
+      { id: 4, name: 'Product D', category: 'Electronics', price: 599.99, stock: 0, status: 'Out of Stock' },
+      { id: 5, name: 'Product E', category: 'Home', price: 89.99, stock: 35, status: 'In Stock' },
+      { id: 6, name: 'Product F', category: 'Sports', price: 149.99, stock: 22, status: 'In Stock' },
+      { id: 7, name: 'Product G', category: 'Electronics', price: 399.99, stock: 15, status: 'In Stock' },
+      { id: 8, name: 'Product H', category: 'Clothing', price: 79.99, stock: 5, status: 'Low Stock' },
+      { id: 9, name: 'Product I', category: 'Books', price: 29.99, stock: 50, status: 'In Stock' },
+      { id: 10, name: 'Product J', category: 'Home', price: 199.99, stock: 12, status: 'In Stock' },
+      { id: 11, name: 'Product K', category: 'Sports', price: 119.99, stock: 30, status: 'In Stock' },
+      { id: 12, name: 'Product L', category: 'Electronics', price: 899.99, stock: 3, status: 'Low Stock' },
+      { id: 13, name: 'Product M', category: 'Clothing', price: 39.99, stock: 75, status: 'In Stock' },
+      { id: 14, name: 'Product N', category: 'Books', price: 24.99, stock: 0, status: 'Out of Stock' },
+      { id: 15, name: 'Product O', category: 'Home', price: 129.99, stock: 18, status: 'In Stock' }
+    ];
+
+    let currentGrid = null;
+
+    function getConfig() {
+      return {
+        gridId: document.getElementById('gridId').value || 'my-grid',
+        pageSize: parseInt(document.getElementById('pageSize').value) || 10,
+        theme: document.getElementById('theme').value,
+        filterable: document.getElementById('filterable').checked,
+        sortable: document.getElementById('sortable').checked,
+        groupable: document.getElementById('groupable').checked,
+        exporting: document.getElementById('exporting').checked,
+        columnsMenu: document.getElementById('columnsMenu').checked,
+        selection: document.getElementById('selection').checked,
+        striped: document.getElementById('striped').checked,
+        density: document.getElementById('density').value,
+        enableSettings: document.getElementById('enableSettings').checked,
+        pagination: document.getElementById('pagination').checked,
+        pageSizes: document.getElementById('pageSizes').value,
+        resizableColumns: document.getElementById('resizableColumns').checked,
+        editableRows: document.getElementById('editableRows').checked,
+        contextMenu: document.getElementById('contextMenu').checked
+      };
+    }
+
+    function generateHTMLCode(config) {
+      return `<!-- VanillaGrid Container -->
+<div id="${config.gridId}"></div>`;
+    }
+
+    function generateJSCode(config) {
+      const indent = '  ';
+      let code = `// Sample data\nconst data = [\n`;
+      code += `${indent}{ id: 1, name: 'Product A', category: 'Electronics', price: 299.99, stock: 45 },\n`;
+      code += `${indent}{ id: 2, name: 'Product B', category: 'Clothing', price: 49.99, stock: 120 },\n`;
+      code += `${indent}// ... more data\n];\n\n`;
+      
+      code += `// Initialize VanillaGrid\n`;
+      code += `const grid = new VanillaGrid('#${config.gridId}', {\n`;
+      code += `${indent}data: data,\n`;
+      code += `${indent}columns: [\n`;
+      code += `${indent}${indent}{ key: 'id', label: 'ID', type: 'number', sortable: ${config.sortable} },\n`;
+      code += `${indent}${indent}{ key: 'name', label: 'Name', sortable: ${config.sortable} },\n`;
+      code += `${indent}${indent}{ key: 'category', label: 'Category', sortable: ${config.sortable} },\n`;
+      code += `${indent}${indent}{ \n`;
+      code += `${indent}${indent}${indent}key: 'price', \n`;
+      code += `${indent}${indent}${indent}label: 'Price', \n`;
+      code += `${indent}${indent}${indent}type: 'number', \n`;
+      code += `${indent}${indent}${indent}sortable: ${config.sortable},\n`;
+      code += `${indent}${indent}${indent}formatter: (val) => '$' + val.toFixed(2)\n`;
+      code += `${indent}${indent}},\n`;
+      code += `${indent}${indent}{ key: 'stock', label: 'Stock', type: 'number', sortable: ${config.sortable} }\n`;
+      code += `${indent}],\n`;
+      
+      if (config.filterable) code += `${indent}filterable: true,\n`;
+      if (config.groupable) code += `${indent}groupable: true,\n`;
+      if (config.selection) code += `${indent}selection: { enabled: true },\n`;
+      
+  code += `${indent}pageSize: ${config.pageSize}`;
+
+  // Theme/density/striped are top-level grid options too — include them
+  if (config.theme) code += `,\n${indent}theme: '${config.theme}'`;
+  if (config.density && config.density !== 'comfortable') code += `,\n${indent}density: '${config.density}'`;
+  if (config.striped) code += `,\n${indent}striped: true`;
+      
+      if (config.columnsMenu) {
+        code += `,\n${indent}columnsMenu: { location: 'pager', showSearch: true, showSelectAll: true }`;
+      }
+      
+      if (config.exporting) {
+        code += `,\n${indent}exporting: { enabled: true, formats: ['csv', 'md'] }`;
+      }
+
+      // Pagination and page sizes
+      if (!config.pagination) {
+        code += `,\n${indent}pagination: false`;
+      } else if (config.pageSizes) {
+        const sizes = (config.pageSizes || '').split(',').map(s => parseInt(s.trim(), 10)).filter(n => Number.isFinite(n));
+        if (sizes.length) {
+          code += `,\n${indent}pageSizes: [${sizes.join(', ')}]`;
+        }
+      }
+
+      if (config.resizableColumns) code += `,\n${indent}resizableColumns: true`;
+      if (config.editableRows) code += `,\n${indent}editableRows: true`;
+      if (!config.contextMenu) code += `,\n${indent}contextMenu: false`;
+
+      if (config.enableSettings === false) {
+        code += `,\n${indent}styleControls: false`;
+      } else if (config.theme || config.striped || config.density !== 'comfortable') {
+        code += `,\n${indent}styleControls: {\n`;
+        if (config.theme) code += `${indent}${indent}theme: '${config.theme}',\n`;
+        if (config.striped) code += `${indent}${indent}striped: true,\n`;
+        if (config.density !== 'comfortable') code += `${indent}${indent}density: '${config.density}',\n`;
+        code = code.slice(0, -2) + '\n';
+        code += `${indent}}`;
+      }
+      
+      code += `\n});`;
+      
+      return code;
+    }
+
+    const assetCache = new Map();
+  // Not used when generating complete code with absolute /dist links.
+  // Keeping helper here in case we later re-enable inline asset option.
+  async function getAssetContent(url) {
+      if (assetCache.has(url)) {
+        return assetCache.get(url);
+      }
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Failed to fetch ${url}`);
+  const text = await response.text();
+  const result = { text, source: 'local' };
+  assetCache.set(url, result);
+  return result;
+      } catch (error) {
+        console.warn('Local asset fetch failed for', url, error);
+        // Fallback to CDN if available (helps when preview is opened via file://)
+        try {
+          const cdn = url.replace(/^\.\./, 'https://cdn.jsdelivr.net/gh/simonwaldherr/vanillagrid.js@main');
+          const resp2 = await fetch(cdn);
+          if (!resp2.ok) throw new Error(`Failed to fetch CDN ${cdn}`);
+            const txt2 = await resp2.text();
+            const result2 = { text: txt2, source: 'cdn' };
+          assetCache.set(url, result2);
+          console.info('Fetched fallback asset from CDN:', cdn);
+          return result2;
+        } catch (err2) {
+          console.error('Error fetching asset from CDN fallback:', err2);
+        }
+
+        const errResult = { text: `/* Error fetching ${url} */`, source: 'error' };
+        assetCache.set(url, errResult);
+        return errResult;
+      }
+    }
+
+    function generateCompleteCode(config) {
+      // Use absolute paths so new tab can fetch local dist assets reliably
+      let cssUrl, jsUrl;
+      // When opened via file://, location.origin is unreliable — fall back to CDN
+      if (location.protocol === 'file:' || !location.origin) {
+        cssUrl = 'https://cdn.jsdelivr.net/gh/simonwaldherr/vanillagrid.js@main/dist/vanillagrid.min.css';
+        jsUrl = 'https://cdn.jsdelivr.net/gh/simonwaldherr/vanillagrid.js@main/dist/vanillagrid.min.js';
+      } else {
+        cssUrl = `${location.origin}/dist/vanillagrid.min.css`;
+        jsUrl = `${location.origin}/dist/vanillagrid.min.js`;
+      }
+
+      // Avoid nesting template literals; use concatenation and escape closing script tags
+      function escapeClosingScript(s) {
+        return s.replace(/<\/script>/gi, '<\\/script>');
+      }
+
+      const jsSource = escapeClosingScript(generateJSCode(config));
+    const lines = [];
+    lines.push('<!DOCTYPE html>');
+    lines.push('<html lang="en">');
+    lines.push('<head>');
+    lines.push('  <meta charset="UTF-8">');
+    lines.push('  <meta name="viewport" content="width=device-width, initial-scale=1.0">');
+    lines.push('  <title>VanillaGrid Example</title>');
+    lines.push('');
+    lines.push('  <!-- VanillaGrid CSS -->');
+    lines.push('  <link rel="stylesheet" href="' + cssUrl + '">');
+    lines.push('</head>');
+    lines.push('<body>');
+    lines.push(generateHTMLCode(config));
+    lines.push('');
+    lines.push('  <!-- VanillaGrid JS -->');
+  lines.push('  <script src="' + jsUrl + '"></scr' + 'ipt>');
+    lines.push('');
+  lines.push('  <scr' + 'ipt>');
+    jsSource.split('\n').forEach(l => lines.push('    ' + l));
+  lines.push('  </scr' + 'ipt>');
+    lines.push('</body>');
+    lines.push('</html>');
+    return lines.join('\n');
+    }
+
+    async function updateCode() {
+      const config = getConfig();
+      document.getElementById('html-code').textContent = generateHTMLCode(config);
+      document.getElementById('js-code').textContent = generateJSCode(config);
+      
+      let completeCode = generateCompleteCode(config);
+      
+  // Assets are linked; when running via file://, CDN fall back is used.
+  const status = document.getElementById('assetStatus');
+  status.textContent = (location.protocol === 'file:' || !location.origin) ? 'Assets: using CDN fallback (file://)' : 'Assets: linked to /dist/';
+
+  document.getElementById('complete-code').textContent = completeCode;
+  // Debug hint: useful when diagnosing escaping errors
+  if (typeof console !== 'undefined') console.debug('Generated HTML length:', completeCode.length);
+      return completeCode;
+    }
+
+    // simple debounce helper
+    function debounce(fn, wait = 180) {
+      let t = null;
+      return (...args) => {
+        clearTimeout(t);
+        t = setTimeout(() => fn.apply(this, args), wait);
+      };
+    }
+
+    async function updatePreview() {
+      const config = getConfig();
+      const container = document.getElementById('preview-grid');
+      
+      // Clear existing grid
+      container.innerHTML = '';
+      
+  // Do not set theme on the container — pass theme/density/striped as grid options
+  // (VanillaGrid will set the theme on the grid root when initialized)
+      
+      // Create new grid
+      const gridConfig = {
+        data: sampleData,
+        columns: [
+          { key: 'id', label: 'ID', type: 'number', sortable: config.sortable, width: 60 },
+          { key: 'name', label: 'Name', sortable: config.sortable, width: 140 },
+          { key: 'category', label: 'Category', sortable: config.sortable, width: 120 },
+          { 
+            key: 'price', 
+            label: 'Price', 
+            type: 'number', 
+            sortable: config.sortable,
+            width: 100,
+            formatter: (val) => '$' + val.toFixed(2)
+          },
+          { key: 'stock', label: 'Stock', type: 'number', sortable: config.sortable, width: 80 },
+          {
+            key: 'status',
+            label: 'Status',
+            type: 'custom',
+            width: 120,
+            render: (value) => {
+              const badges = {
+                'In Stock': 'success',
+                'Low Stock': 'warning',
+                'Out of Stock': 'error'
+              };
+              return `<span class="vg-badge vg-badge-${badges[value] || 'default'}">${value}</span>`;
+            }
+          }
+        ],
+        pageSize: config.pageSize
+      };
+      // Apply theme/density/striped as top-level options so the grid initializes with them
+      if (config.theme) gridConfig.theme = config.theme;
+      gridConfig.density = config.density || 'comfortable';
+      if (config.striped) gridConfig.striped = true;
+      
+      if (config.filterable) gridConfig.filterable = true;
+      if (config.groupable) gridConfig.groupable = true;
+      if (config.selection) gridConfig.selection = { enabled: true };
+      if (config.columnsMenu) {
+        gridConfig.columnsMenu = { location: 'pager', showSearch: true, showSelectAll: true };
+      }
+      if (config.exporting) {
+        gridConfig.exporting = { enabled: true, formats: ['csv', 'md'] };
+      }
+
+      gridConfig.pagination = !!config.pagination;
+      if (config.pageSizes) {
+        const sizes = (config.pageSizes || '').split(',').map(s => parseInt(s.trim(), 10)).filter(n => Number.isFinite(n));
+        if (sizes.length) gridConfig.pageSizes = sizes;
+      }
+
+      if (config.resizableColumns) gridConfig.resizableColumns = true;
+      if (config.editableRows) gridConfig.editableRows = true;
+      if (!config.contextMenu) gridConfig.contextMenu = false;
+      
+      if (!config.enableSettings) {
+        // Disable settings button entirely
+        gridConfig.styleControls = false;
+      } else if (config.theme || config.striped || config.density !== 'comfortable') {
+        gridConfig.styleControls = {};
+        if (config.theme) gridConfig.styleControls.theme = config.theme;
+        if (config.striped) gridConfig.styleControls.striped = true;
+        if (config.density !== 'comfortable') gridConfig.styleControls.density = config.density;
+      }
+      
+      // destroy previous grid instance if possible
+      try {
+        if (currentGrid && typeof currentGrid.destroy === 'function') {
+          currentGrid.destroy();
+        } else if (currentGrid && typeof currentGrid.dispose === 'function') {
+          currentGrid.dispose();
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      try {
+        currentGrid = new VanillaGrid(container, gridConfig);
+      } catch (err) {
+        console.error('Failed to create VanillaGrid preview:', err);
+        const status = document.getElementById('assetStatus');
+        if (status) status.textContent = 'Preview: failed to render (see console)';
+        return;
+      }
+      
+      // Update code
+      await updateCode();
+      const status = document.getElementById('assetStatus');
+      if (status) status.textContent = 'Preview: Ready';
+    }
+
+    function resetConfig() {
+      document.getElementById('gridId').value = 'my-grid';
+      document.getElementById('pageSize').value = '10';
+      document.getElementById('theme').value = '';
+      document.getElementById('filterable').checked = true;
+      document.getElementById('sortable').checked = true;
+      document.getElementById('groupable').checked = false;
+      document.getElementById('exporting').checked = false;
+      document.getElementById('columnsMenu').checked = true;
+      document.getElementById('selection').checked = false;
+      document.getElementById('striped').checked = false;
+      document.getElementById('density').value = 'comfortable';
+  document.getElementById('pagination').checked = true;
+  document.getElementById('pageSizes').value = '10,25,50,100';
+  document.getElementById('resizableColumns').checked = false;
+  document.getElementById('editableRows').checked = false;
+  document.getElementById('contextMenu').checked = true;
+  document.getElementById('enableSettings').checked = true;
+      updatePreview();
+    }
+
+    function switchTab(tabName, el) {
+      // Update tabs
+      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      
+      if (el && el.classList) el.classList.add('active');
+      document.getElementById(tabName + '-tab').classList.add('active');
+    }
+
+    function copyCode() {
+      const activeTab = document.querySelector('.tab-content.active pre');
+      const code = activeTab.textContent;
+      
+      navigator.clipboard.writeText(code).then(() => {
+        const btn = document.getElementById('copyBtn');
+        const msg = document.getElementById('copySuccess');
+        
+        btn.classList.add('copied');
+        btn.textContent = '✅ Copied!';
+        msg.classList.add('show');
+        
+        setTimeout(() => {
+          btn.classList.remove('copied');
+          btn.textContent = '📋 Copy Code';
+          msg.classList.remove('show');
+        }, 2000);
+      });
+    }
+
+    async function openInNewTab() {
+      const btn = document.getElementById('openBtn');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '⌛ Generating...';
+      btn.disabled = true;
+
+      try {
+        // Ensure the latest code is generated (and returned)
+        const html = await updateCode();
+        if (!html) {
+          alert('Could not generate the code. Please check the console for errors.');
+          return;
+        }
+        
+  const blob = new Blob([html], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+      } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }
+    }
+
+    // Wire up inputs for live update (debounced)
+    (function wireInputs() {
+  const controls = Array.from(document.querySelectorAll('#gridId, #pageSize, #theme, #filterable, #sortable, #groupable, #exporting, #columnsMenu, #selection, #striped, #density, #enableSettings, #pagination, #pageSizes, #resizableColumns, #editableRows, #contextMenu'));
+      const updater = debounce(updatePreview, 220);
+      controls.forEach(c => {
+        c.addEventListener('change', updater);
+        if (c.type === 'text' || c.tagName === 'INPUT') c.addEventListener('input', updater);
+      });
+
+      // handle enabling/disabling the pageSize input when pagination is toggled
+      const pageSizeInput = document.getElementById('pageSize');
+      const paginationCheckbox = document.getElementById('pagination');
+      if (paginationCheckbox && pageSizeInput) {
+        paginationCheckbox.addEventListener('change', (e) => {
+          pageSizeInput.disabled = !e.target.checked;
+          const pageSizesInput = document.getElementById('pageSizes');
+          if (pageSizesInput) pageSizesInput.disabled = !e.target.checked;
+          updater();
+        });
+        pageSizeInput.disabled = !paginationCheckbox.checked;
+        const pageSizesInput = document.getElementById('pageSizes');
+        if (pageSizesInput) pageSizesInput.disabled = !paginationCheckbox.checked;
+      }
+    })();
+
+  // Initialize on load
+  updatePreview().catch(err => { console.error('Error initializing preview:', err); });
+  </script>
+</body>
+</html>

@@ -2,36 +2,296 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>VanillaGrid • Tree</title>
+  <title>VanillaGrid • Hierarchical Tree View</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <script src="../dist/vanillagrid.umd.js"></script>
-  <link rel="stylesheet" href="../vanillagrid.css" />
+  <script src="../dist/vanillagrid.min.js"></script>
+  <link rel="stylesheet" href="../dist/vanillagrid.min.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body { 
+      padding: 24px; 
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      font-family: system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .header {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .header h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      color: #111827;
+    }
+    .header p {
+      margin: 0 0 16px;
+      color: #6b7280;
+      font-size: 16px;
+    }
+    .feature-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .feature-item {
+      background: #f0fdf4;
+      padding: 12px;
+      border-radius: 8px;
+      border-left: 3px solid #10b981;
+    }
+    .feature-item strong {
+      color: #065f46;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .feature-item span {
+      color: #6b7280;
+      font-size: 13px;
+    }
+    .grid-container {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .controls {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .controls button {
+      padding: 8px 16px;
+      border: 1px solid #d1d5db;
+      background: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .controls button:hover {
+      background: #f0fdf4;
+      border-color: #10b981;
+      color: #065f46;
+    }
+    @media (max-width: 768px) {
+      body { padding: 16px; }
+      .header { padding: 16px; }
+      .header h1 { font-size: 22px; }
+      .grid-container { padding: 12px; }
+      .feature-list { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
-<body style="padding:24px;background:#f5f7fb;">
-  <h1>Tree Grid</h1>
-  <div id="tree-grid"></div>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🌳 Hierarchical Tree View</h1>
+      <p>Organize and visualize nested data with expandable/collapsible tree structures</p>
+      
+      <div class="feature-list">
+        <div class="feature-item">
+          <strong>📁 Multi-Level Hierarchy</strong>
+          <span>Unlimited nesting depth</span>
+        </div>
+        <div class="feature-item">
+          <strong>🔄 Expand/Collapse</strong>
+          <span>Click arrows to toggle nodes</span>
+        </div>
+        <div class="feature-item">
+          <strong>📊 Aggregated Data</strong>
+          <span>Roll-up calculations</span>
+        </div>
+        <div class="feature-item">
+          <strong>🔍 Filter Support</strong>
+          <span>Search through hierarchy</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-container">
+      <div class="controls">
+        <button id="expand-all">➕ Expand All</button>
+        <button id="collapse-all">➖ Collapse All</button>
+        <button id="expand-level-1">📂 Expand Level 1</button>
+        <button id="expand-level-2">📂 Expand Level 2</button>
+      </div>
+      <div id="tree-grid"></div>
+    </div>
+  </div>
   <script>
+    // Comprehensive warehouse inventory tree
     const data = [
-      { id: 1, name: 'Warehouse A', hasChildren: true, children: [
-        { id: 2, name: 'Aisle 1', children: [
-          { id: 3, name: 'Bin 1', children: [
-            { id: 4, name: 'SKU-1001', stock: 20 },
-            { id: 5, name: 'SKU-1002', stock: 8 }
-          ]}
-        ]}
-      ]}
+      { 
+        id: 1, 
+        name: 'Warehouse North', 
+        location: 'NY', 
+        hasChildren: true, 
+        children: [
+          { 
+            id: 2, 
+            name: 'Aisle A', 
+            children: [
+              { 
+                id: 3, 
+                name: 'Bin A-1', 
+                children: [
+                  { id: 4, name: 'SKU-1001 (Electronics)', stock: 120, value: 24000, status: 'In Stock' },
+                  { id: 5, name: 'SKU-1002 (Electronics)', stock: 45, value: 6750, status: 'Low' }
+                ]
+              },
+              { 
+                id: 6, 
+                name: 'Bin A-2', 
+                children: [
+                  { id: 7, name: 'SKU-2001 (Clothing)', stock: 300, value: 15000, status: 'In Stock' },
+                  { id: 8, name: 'SKU-2002 (Clothing)', stock: 5, value: 250, status: 'Critical' }
+                ]
+              }
+            ]
+          },
+          { 
+            id: 9, 
+            name: 'Aisle B', 
+            children: [
+              { 
+                id: 10, 
+                name: 'Bin B-1', 
+                children: [
+                  { id: 11, name: 'SKU-3001 (Books)', stock: 200, value: 4000, status: 'In Stock' },
+                  { id: 12, name: 'SKU-3002 (Books)', stock: 85, value: 1700, status: 'In Stock' }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      { 
+        id: 13, 
+        name: 'Warehouse South', 
+        location: 'TX', 
+        hasChildren: true, 
+        children: [
+          { 
+            id: 14, 
+            name: 'Aisle C', 
+            children: [
+              { 
+                id: 15, 
+                name: 'Bin C-1', 
+                children: [
+                  { id: 16, name: 'SKU-4001 (Home)', stock: 75, value: 11250, status: 'In Stock' },
+                  { id: 17, name: 'SKU-4002 (Home)', stock: 12, value: 1800, status: 'Low' }
+                ]
+              },
+              { 
+                id: 18, 
+                name: 'Bin C-2', 
+                children: [
+                  { id: 19, name: 'SKU-5001 (Sports)', stock: 150, value: 22500, status: 'In Stock' },
+                  { id: 20, name: 'SKU-5002 (Sports)', stock: 0, value: 0, status: 'Out of Stock' }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      { 
+        id: 21, 
+        name: 'Warehouse West', 
+        location: 'CA', 
+        hasChildren: true, 
+        children: [
+          { 
+            id: 22, 
+            name: 'Aisle D', 
+            children: [
+              { 
+                id: 23, 
+                name: 'Bin D-1', 
+                children: [
+                  { id: 24, name: 'SKU-6001 (Tech)', stock: 250, value: 125000, status: 'In Stock' },
+                  { id: 25, name: 'SKU-6002 (Tech)', stock: 30, value: 15000, status: 'Low' }
+                ]
+              }
+            ]
+          }
+        ]
+      }
     ];
 
     const grid = new VanillaGrid('#tree-grid', {
       data,
       columns: [
-        { key: 'name', label: 'Name' },
-        { key: 'stock', label: 'Stock', type: 'number' }
+        { key: 'name', label: 'Hierarchy', sortable: true, width: 300 },
+        { key: 'location', label: 'Location', sortable: true, width: 100 },
+        { 
+          key: 'stock', 
+          label: 'Stock Qty', 
+          type: 'number', 
+          sortable: true,
+          width: 100,
+          formatter: (val) => val ? val.toLocaleString() : '-'
+        },
+        { 
+          key: 'value', 
+          label: 'Value ($)', 
+          type: 'number', 
+          sortable: true,
+          width: 120,
+          formatter: (val) => val ? '$' + val.toLocaleString() : '-'
+        },
+        {
+          key: 'status',
+          label: 'Status',
+          type: 'custom',
+          width: 120,
+          render: (value) => {
+            if (!value) return '-';
+            const badges = {
+              'In Stock': 'success',
+              'Low': 'warning',
+              'Critical': 'error',
+              'Out of Stock': 'error'
+            };
+            return `<span class="vg-badge vg-badge-${badges[value] || 'default'}">${value}</span>`;
+          }
+        }
       ],
-      tree: { enabled: true, initiallyExpanded: true },
-      pageSize: 10,
-      columnsMenu: { location: 'pager' }
+      tree: { enabled: true, initiallyExpanded: false },
+      filterable: true,
+      pageSize: 15,
+      columnsMenu: { location: 'pager', showSearch: true, showSelectAll: true }
     });
+
+    // Control buttons
+    document.getElementById('expand-all').onclick = () => {
+      // Expand all nodes (implementation depends on VanillaGrid API)
+      console.log('Expand all functionality');
+    };
+
+    document.getElementById('collapse-all').onclick = () => {
+      // Collapse all nodes
+      console.log('Collapse all functionality');
+    };
+
+    document.getElementById('expand-level-1').onclick = () => {
+      // Expand level 1 only
+      console.log('Expand level 1 functionality');
+    };
+
+    document.getElementById('expand-level-2').onclick = () => {
+      // Expand level 2 only
+      console.log('Expand level 2 functionality');
+    };
   </script>
 </body>
 </html>

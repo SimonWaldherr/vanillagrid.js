@@ -4,36 +4,127 @@
   <meta charset="utf-8" />
   <title>VanillaGrid • Export & Print</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <script src="../dist/vanillagrid.umd.js"></script>
-  <link rel="stylesheet" href="../vanillagrid.css" />
+  <script src="../dist/vanillagrid.min.js"></script>
+  <link rel="stylesheet" href="../dist/vanillagrid.min.css" />
   <style>
-    .export-panel { background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:16px; margin-bottom:16px; }
-    .export-controls { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    * { box-sizing: border-box; }
+    body { 
+      padding: 24px; 
+      background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+      font-family: system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .header {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .header h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      color: #111827;
+    }
+    .header p {
+      margin: 0;
+      color: #6b7280;
+      font-size: 16px;
+    }
+    .export-panel { 
+      background: white; 
+      border: 2px solid #e5e7eb; 
+      border-radius: 12px; 
+      padding: 20px; 
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .export-panel h3 {
+      margin: 0 0 16px;
+      font-size: 18px;
+      color: #111827;
+    }
+    .export-controls { 
+      display: flex; 
+      gap: 12px; 
+      flex-wrap: wrap; 
+      align-items: center;
+    }
+    .export-controls button {
+      padding: 10px 16px;
+      border: 1px solid #d1d5db;
+      background: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .export-controls button:hover {
+      background: #f5f3ff;
+      border-color: #8b5cf6;
+      color: #6d28d9;
+    }
+    .export-controls select,
+    .export-controls input {
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .export-controls input {
+      width: 150px;
+    }
+    .grid-container {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    @media (max-width: 768px) {
+      body { padding: 16px; }
+      .header { padding: 16px; }
+      .header h1 { font-size: 22px; }
+      .export-panel { padding: 16px; }
+      .grid-container { padding: 12px; }
+    }
     @media print {
-      .export-panel, .no-print { display: none !important; }
+      body { background: white; padding: 0; }
+      .export-panel, .no-print, .header { display: none !important; }
       .vg-toolbar, .vg-pager { display: none !important; }
+      .grid-container { box-shadow: none; border-radius: 0; padding: 0; }
     }
   </style>
 </head>
-<body style="padding:24px;background:#f5f7fb;">
-  <h1 class="no-print">Export & Print Demo</h1>
-  <p class="no-print" style="color:#6b7280;">Export data as CSV/Markdown or print the table directly.</p>
-  
-  <div class="export-panel no-print">
-    <h3 style="margin:0 0 8px;">Export Options</h3>
-    <div class="export-controls">
-      <button id="export-csv" style="padding:8px 12px; border:1px solid #e5e7eb; background:#fff; border-radius:8px; cursor:pointer;">📄 Export CSV</button>
-      <button id="export-md" style="padding:8px 12px; border:1px solid #e5e7eb; background:#fff; border-radius:8px; cursor:pointer;">📝 Export Markdown</button>
-      <button id="print-table" style="padding:8px 12px; border:1px solid #e5e7eb; background:#fff; border-radius:8px; cursor:pointer;">🖨️ Print Table</button>
-      <select id="export-scope" style="padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px;">
-        <option value="page">Current Page Only</option>
-        <option value="all">All Data</option>
-      </select>
-      <input id="filename" placeholder="filename" value="export" style="padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px; width:120px;" />
+<body>
+  <div class="container">
+    <div class="header no-print">
+      <h1>💾 Export & Print Demo</h1>
+      <p>Export data to CSV/Markdown formats or print directly from your browser</p>
+    </div>
+    
+    <div class="export-panel no-print">
+      <h3>📥 Export Options</h3>
+      <div class="export-controls">
+        <button id="export-csv">📄 Export CSV</button>
+        <button id="export-md">📝 Export Markdown</button>
+        <button id="print-table">🖨️ Print Table</button>
+        <select id="export-scope">
+          <option value="page">Current Page Only</option>
+          <option value="all">All Data (150 rows)</option>
+        </select>
+        <input id="filename" placeholder="filename" value="employees-export" />
+      </div>
+    </div>
+
+    <div class="grid-container">
+      <div id="export-grid"></div>
     </div>
   </div>
-
-  <div id="export-grid"></div>
 
   <script>
     // Generate employee data

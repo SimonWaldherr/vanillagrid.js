@@ -2,68 +2,108 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>VanillaGrid • Basic</title>
+  <title>VanillaGrid • Basic Demo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <script src="../dist/vanillagrid.umd.js"></script>
-  <link rel="stylesheet" href="../vanillagrid.css" />
+  <script src="../dist/vanillagrid.min.js"></script>
+  <link rel="stylesheet" href="../dist/vanillagrid.min.css" />
   <style>
-    body { padding: 24px; background: #f5f7fb; font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
-    .demo-info {
+    * { box-sizing: border-box; }
+    body { 
+      padding: 24px; 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .header {
       background: white;
-      padding: 20px;
-      border-radius: 8px;
+      padding: 24px;
+      border-radius: 12px;
       margin-bottom: 20px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .header h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      color: #111827;
+    }
+    .header p {
+      margin: 0;
+      color: #6b7280;
+      font-size: 16px;
     }
     .search-tip {
-      background: #e3f2fd;
-      padding: 12px;
-      border-radius: 6px;
-      border-left: 4px solid #2196f3;
-      margin-top: 15px;
+      background: #e0e7ff;
+      padding: 16px;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+      margin: 16px 0;
     }
-    .search-tip h4 { margin: 0 0 8px 0; color: #1976d2; }
-    .search-tip p { margin: 0; color: #424242; font-size: 14px; }
+    .search-tip h4 { 
+      margin: 0 0 8px 0; 
+      color: #4338ca;
+      font-size: 16px;
+    }
+    .search-tip ul { 
+      margin: 8px 0 0; 
+      padding-left: 20px;
+      color: #374151;
+    }
+    .search-tip li {
+      margin: 4px 0;
+      font-size: 14px;
+    }
+    .search-tip code {
+      background: rgba(255,255,255,0.8);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      color: #4338ca;
+    }
+    .grid-container {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
     
-    /* Mobile optimizations */
     @media (max-width: 768px) {
-      body { 
-        padding: 16px 12px; 
-        font-size: 14px;
-      }
-      h1 { 
-        font-size: 20px; 
-        margin: 0 0 16px 0;
-      }
-      .demo-info {
-        padding: 16px;
-        margin-bottom: 16px;
-      }
-      .search-tip {
-        padding: 10px;
-        margin-top: 12px;
-      }
-      .search-tip h4 { 
-        font-size: 14px; 
-      }
-      .search-tip p { 
-        font-size: 13px; 
-      }
-    }
-    
-    @media (max-width: 480px) {
-      body { 
-        padding: 12px 8px; 
-      }
-      h1 { 
-        font-size: 18px; 
-      }
+      body { padding: 16px; }
+      .header { padding: 16px; }
+      .header h1 { font-size: 22px; }
+      .header p { font-size: 14px; }
+      .grid-container { padding: 12px; }
+      .search-tip { padding: 12px; }
+      .search-tip h4 { font-size: 14px; }
+      .search-tip li { font-size: 13px; }
     }
   </style>
 </head>
-<body style="padding:24px;background:#f5f7fb;">
-  <h1>Basic Grid</h1>
-  <div id="grid"></div>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🚀 Basic Grid Demo</h1>
+      <p>Essential features: sorting, filtering, pagination, and column management</p>
+      
+      <div class="search-tip">
+        <h4>💡 Search & Filter Tips</h4>
+        <ul>
+          <li><strong>Simple search:</strong> Type <code>tea</code> to find all tea products</li>
+          <li><strong>Regex search:</strong> Try <code>mocha|latte</code> for multiple terms</li>
+          <li><strong>Column filters:</strong> Use the filter dropdowns in each column header</li>
+          <li><strong>Quick sort:</strong> Click column headers to sort ascending/descending</li>
+          <li><strong>Columns menu:</strong> Toggle column visibility using the ⚙ Settings button</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="grid-container">
+      <div id="grid"></div>
+    </div>
+  </div>
   
   <script>
     const products = [
