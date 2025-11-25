@@ -617,11 +617,14 @@
    * This method is called frequently; keep it fast and avoid stacking listeners.
    */
   _renderToolbar() {
-      // If in pivot mode, render pivot toolbar instead
+      // If in pivot mode, render pivot toolbar instead and hide all other toggles
       if (this.opts.pivotMode) {
         this._renderPivotToolbar();
         return;
       }
+
+      // Only show toolbar pivot button if enabled in config
+      const showToolbarPivotButton = !!this.opts.showToolbarPivotButton;
       
       this._closeAllSettingsPanels();
 
@@ -690,7 +693,10 @@
             </select>
           </div>` : ''}
           ${renderColumnsHere ? this._columnsMenuMarkup(colMenuCfg) : ''}
-          ${actionsMarkup}
+              ${actionsMarkup}
+              <div class="vg-toolbar-pivot" style="display:${this.opts.showToolbarPivotButton || this.opts.showHeaderPivotButton ? 'block' : 'none'}">
+                ${(this.opts.showToolbarPivotButton || this.opts.showHeaderPivotButton) ? `<button class="vg-btn vg-pivot-enter" type="button" aria-label="Enter Pivot Mode" aria-pressed="false" title="Toggle Pivot Mode">📊 Pivot</button>` : ''}
+              </div>
         </div>
       `;
 
@@ -702,6 +708,7 @@
       // page size select moved to pager
       const btnExport = this.toolbarEl.querySelector('.vg-export-btn');
       const selExportFmt = this.toolbarEl.querySelector('.vg-export-format');
+      const btnPivotEnter = this.toolbarEl.querySelector('.vg-pivot-enter');
       // column toggles may be in toolbar depending on config
 
       if (input) {
@@ -756,6 +763,32 @@
             setTimeout(() => this._renderToolbar(), 100);
           }
         };
+      }
+
+      // Pivot enter button (start pivot mode)
+      if (btnPivotEnter) {
+        // Reflect current state for accessibility
+        try {
+          var pressed = !!this.opts.pivotMode;
+          btnPivotEnter.setAttribute('aria-pressed', String(pressed));
+          btnPivotEnter.setAttribute('aria-label', pressed ? 'Exit Pivot Mode' : 'Enter Pivot Mode');
+          btnPivotEnter.title = pressed ? 'Exit Pivot Mode' : 'Enter Pivot Mode';
+          btnPivotEnter.innerHTML = pressed ? '✖️ Exit Pivot' : '📊 Pivot';
+        } catch (e) {}
+
+        btnPivotEnter.addEventListener('click', (e) => {
+          try {
+            if (this.opts.pivotMode) {
+              // If already in pivot mode, disable it
+              this.disablePivot();
+            } else {
+              // Enable pivot with empty/default config; the toolbar will re-render in pivot mode
+              this.enablePivot({ rows: [], columns: [], values: [], aggregations: {} });
+            }
+          } catch (err) {
+            console.warn('Failed to toggle pivot mode:', err);
+          }
+        });
       }
       
       // Filter mode dropdown (simple/CS/regex/tree)
@@ -1520,8 +1553,16 @@
         }
         head.appendChild(th);
       });
+      // Integrate a small pivot toggle into the header (appended into the rightmost header cell)
       this.theadEl.innerHTML = '';
-      this.theadEl.appendChild(head);
+      try {
+        // Append the header row first
+        this.theadEl.appendChild(head);
+        // No header pivot button here anymore
+      } catch (e) {
+        // ignore if DOM manipulation fails
+        this.theadEl.appendChild(head);
+      }
 
       // Header sort events
       this.theadEl.querySelectorAll('.vg-th.vg-sortable').forEach(th => {

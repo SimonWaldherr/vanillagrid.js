@@ -131,6 +131,7 @@
     <div class="header">
       <h1>📊 Advanced Pivot Table Builder</h1>
       <p>Excel-like pivot tables with drag-and-drop interface, advanced filtering, and comprehensive export capabilities</p>
+      <p style="margin-top:8px; font-size:14px; color:#0f172a;">Tip: You can toggle Pivot mode from the grid toolbar using the <strong>📊 Pivot</strong> button for a quicker workflow.</p>
       
       <div class="features-grid">
         <div class="feature-card">
@@ -242,12 +243,16 @@
 
     // Event handlers
     document.getElementById('enable-pivot').onclick = () => {
-      grid.enablePivot({
-        rows: [],
-        columns: [],
-        values: [],
-        aggregations: {}
-      });
+      // Prefer clicking the toolbar Pivot button to demonstrate the new UI.
+      try {
+        const btn = grid.root?.querySelector('.vg-pivot-enter');
+        if (btn) {
+          btn.click();
+          return;
+        }
+      } catch (e) {}
+      // Fallback
+      grid.enablePivot({ rows: [], columns: [], values: [], aggregations: {} });
     };
 
     document.getElementById('load-sample').onclick = () => {
