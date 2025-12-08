@@ -63,19 +63,14 @@
       font-family: monospace;
       color: #4338ca;
     }
-    .grid-container {
-      background: white;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
+    /* Removed grid-container demo styling: demo wrapper no longer styled here */
     
     @media (max-width: 768px) {
       body { padding: 16px; }
       .header { padding: 16px; }
       .header h1 { font-size: 22px; }
       .header p { font-size: 14px; }
-      .grid-container { padding: 12px; }
+      /* Removed grid-container demo styling in media query */
       .search-tip { padding: 12px; }
       .search-tip h4 { font-size: 14px; }
       .search-tip li { font-size: 13px; }
@@ -131,9 +126,8 @@
         { key: 'inStock', label: 'In Stock', sortable: true, width: 80,
           formatter: (val) => val ? '✅ Yes' : '❌ No' }
       ],
-      filterable: true,
-      pageSize: 8,
-      columnsMenu: { location: 'pager', showSearch: true, showSelectAll: true }
+      filterable: false,
+      pageSize: 8
     });
 
     // Add demo instructions

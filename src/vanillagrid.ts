@@ -329,7 +329,7 @@ class VanillaGrid<T extends Record<string, any> = Record<string, any>> {
         density: 'comfortable',
         striped: false,
         styleControls: {
-          enabled: true,
+          enabled: false,
           persistKey: 'vanillagrid:style',
         },
         // i18n strings (override any to localize)

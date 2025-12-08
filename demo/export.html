@@ -79,24 +79,19 @@
     .export-controls input {
       width: 150px;
     }
-    .grid-container {
-      background: white;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
+    /* Removed grid-container demo styling: demo wrapper not styled here */
     @media (max-width: 768px) {
       body { padding: 16px; }
       .header { padding: 16px; }
       .header h1 { font-size: 22px; }
       .export-panel { padding: 16px; }
-      .grid-container { padding: 12px; }
+      /* Removed grid-container demo styling in media query */
     }
     @media print {
       body { background: white; padding: 0; }
       .export-panel, .no-print, .header { display: none !important; }
       .vg-toolbar, .vg-pager { display: none !important; }
-      .grid-container { box-shadow: none; border-radius: 0; padding: 0; }
+      /* Removed grid-container override for export demo */
     }
   </style>
 </head>

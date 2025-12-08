@@ -146,7 +146,7 @@
         density: 'comfortable',
         striped: false,
         styleControls: {
-          enabled: true,
+          enabled: false,
           persistKey: 'vanillagrid:style',
         },
         // i18n strings (override any to localize)
@@ -283,11 +283,14 @@
         pivotControlsCollapsed: false,
       };
 
-      // Root
-      this.root = document.createElement('div');
+      // Root: use the provided container directly (avoid an extra wrapper div)
+      this.root = this.container;
+      // Save original container content and classes so we can restore on destroy()
+      this._initialContainerHtml = this.root.innerHTML;
+      this._initialClassName = this.root.className || '';
+      // reset content and apply vg-container class
+      this.root.innerHTML = '';
       this.root.className = `vg-container ${this.opts.className}`.trim();
-      this.container.innerHTML = '';
-      this.container.appendChild(this.root);
 
   this._initStyleState();
 
@@ -306,6 +309,38 @@
       this._renderBody();
       this._renderPager();
     }
+
+    // Destroy grid instance and cleanup DOM / document handlers
+    destroy() {
+      try {
+        // Detach document handlers if present
+        if (this._onDocClickFilterMode) {
+          document.removeEventListener('click', this._onDocClickFilterMode);
+          this._onDocClickFilterMode = null;
+        }
+        if (this._onDocClickSettings) {
+          this._detachSettingsDocHandler();
+        }
+        // Clear DOM content and restore original container content & classes
+        if (this.root) {
+          if (typeof this._initialContainerHtml !== 'undefined') {
+            this.root.innerHTML = this._initialContainerHtml;
+          } else {
+            this.root.innerHTML = '';
+          }
+          if (typeof this._initialClassName !== 'undefined') {
+            this.root.className = this._initialClassName;
+          } else {
+            if (this.root.classList.contains('vg-container')) this.root.classList.remove('vg-container');
+            if (this.opts && this.opts.className) {
+              this.opts.className.split(/\s+/).forEach(cls => { if (cls) this.root.classList.remove(cls); });
+            }
+          }
+        }
+      } catch (e) { /* ignore */ }
+    }
+
+    dispose() { this.destroy(); }
 
   /** Get a shallow copy of current data. */
   getData() { return this.data.slice(); }

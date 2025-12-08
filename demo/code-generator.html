@@ -800,7 +800,7 @@
                 <span class="label-text">Sorting</span>
               </label>
               <label class="checkbox-item" onclick="toggleCheckbox(this)">
-                <input type="checkbox" id="filterable" checked />
+                <input type="checkbox" id="filterable" />
                 <span class="check-icon">✓</span>
                 <span class="label-text">Filtering</span>
               </label>
@@ -810,7 +810,7 @@
                 <span class="label-text">Pagination</span>
               </label>
               <label class="checkbox-item" onclick="toggleCheckbox(this)">
-                <input type="checkbox" id="columnsMenu" checked />
+                <input type="checkbox" id="columnsMenu" />
                 <span class="check-icon">✓</span>
                 <span class="label-text">Column Menu</span>
               </label>
@@ -889,7 +889,7 @@
                 <span class="label-text">Striped Rows</span>
               </label>
               <label class="checkbox-item" onclick="toggleCheckbox(this)">
-                <input type="checkbox" id="enableSettings" checked />
+                <input type="checkbox" id="enableSettings" />
                 <span class="check-icon">✓</span>
                 <span class="label-text">Settings Button</span>
               </label>
@@ -1266,7 +1266,9 @@
         code += ',\n' + indent + 'showHeaderPivotButton: ' + (config.headerPivotButton ? 'true' : 'false');
       }
 
-      if (!config.enableSettings) {
+      if (config.enableSettings) {
+        code += ',\n' + indent + 'styleControls: true';
+      } else {
         code += ',\n' + indent + 'styleControls: false';
       }
       
@@ -1439,7 +1441,8 @@
       if (config.resizableColumns) gridConfig.resizableColumns = true;
       if (config.editableRows) gridConfig.editableRows = true;
       if (!config.contextMenu) gridConfig.contextMenu = false;
-      if (!config.enableSettings) gridConfig.styleControls = false;
+      if (config.enableSettings) gridConfig.styleControls = true;
+      else gridConfig.styleControls = false;
       // show/hide header pivot button
       if (typeof config.headerPivotButton !== 'undefined') {
         gridConfig.showHeaderPivotButton = !!config.headerPivotButton;
