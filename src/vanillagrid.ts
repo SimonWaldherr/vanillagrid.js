@@ -297,6 +297,9 @@ class VanillaGrid<T extends Record<string, any> = Record<string, any>> {
     startX: number;
     startWidth: number;
   } | null = null;
+  private _onDocClickSettings: ((e: Event) => void) | null = null;
+  private _initialContainerHtml: string = '';
+  private _initialClassName: string = '';
 
     /**
      * Create a VanillaGrid instance.
@@ -466,11 +469,14 @@ class VanillaGrid<T extends Record<string, any> = Record<string, any>> {
         pivotControlsCollapsed: false,
       };
 
-      // Root
-      this.root = document.createElement('div');
+      // Root: use the provided container directly (avoid an extra wrapper div)
+      this.root = this.container;
+      // Save original container content and classes so we can restore on destroy()
+      this._initialContainerHtml = this.root.innerHTML;
+      this._initialClassName = this.root.className || '';
+      // reset content and apply vg-container class
+      this.root.innerHTML = '';
       this.root.className = `vg-container ${this.opts.className}`.trim();
-      this.container.innerHTML = '';
-      this.container.appendChild(this.root);
 
   this._initStyleState();
 
@@ -489,6 +495,28 @@ class VanillaGrid<T extends Record<string, any> = Record<string, any>> {
       this._renderBody();
       this._renderPager();
     }
+
+  /** Destroy grid instance and clean up DOM / document handlers. */
+  destroy() {
+    try {
+      if (this._onDocClickFilterMode) {
+        document.removeEventListener('click', this._onDocClickFilterMode);
+        this._onDocClickFilterMode = null;
+      }
+      if (this._onDocClickSettings) {
+        this._detachSettingsDocHandler();
+      }
+      if (this.root) {
+        this.root.innerHTML = this._initialContainerHtml;
+        this.root.className = this._initialClassName;
+      }
+    } catch (e) {
+      console.warn('[VanillaGrid] Error during destroy:', e);
+    }
+  }
+
+  /** Alias for destroy(). */
+  dispose() { this.destroy(); }
 
   /** Get a shallow copy of current data. */
   getData() { return this.data.slice(); }
