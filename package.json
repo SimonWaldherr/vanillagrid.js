@@ -5,12 +5,21 @@
   "description": "A tiny dependency-free data grid for the web",
   "scripts": {
     "start": "node scripts/serve.js",
-    "build": "npm run clean && npm run minify",
+    "build": "npm run clean && npm run rollup && npm run minify-css && npm run minify-pivot",
     "clean": "rm -rf dist && mkdir -p dist",
-    "minify": "terser vanillagrid.js --compress --mangle --output dist/vanillagrid.min.js && cleancss -o dist/vanillagrid.min.css vanillagrid.css && terser vg-pivot-d3.js --compress --mangle --output dist/vg-pivot-d3.min.js && cleancss -o dist/vg-pivot-d3.min.css vg-pivot-d3.css"
+    "rollup": "rollup -c rollup.config.mjs",
+    "minify-css": "cleancss -o dist/vanillagrid.min.css vanillagrid.css && cleancss -o dist/vg-pivot-d3.min.css vg-pivot-d3.css",
+    "minify-pivot": "terser vg-pivot-d3.js --compress --mangle --output dist/vg-pivot-d3.min.js"
   },
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^29.0.0",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-typescript": "^12.3.0",
+    "clean-css-cli": "^5.6.3",
+    "rollup": "^4.59.0",
     "terser": "^5.33.0",
-    "clean-css-cli": "^5.6.3"
+    "tslib": "^2.8.1",
+    "typescript": "^5.9.3"
   }
 }
