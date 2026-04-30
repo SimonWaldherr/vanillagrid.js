@@ -95,9 +95,10 @@
             }
         }
 
+        let grid;
         try {
             // Initialize grid
-            const grid = new VanillaGrid('#grid', {
+            grid = new VanillaGrid('#grid', {
                 data: testData,
                 columns: [
                     { key: 'id', label: 'ID', width: 60 },
