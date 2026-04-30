@@ -1,1 +1,7 @@
 node_modules
+.DS_Store
+*.tsbuildinfo
+*.log
+npm-debug.log*
+.vscode/
+.idea/

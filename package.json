@@ -3,13 +3,62 @@
   "version": "0.3.0",
   "private": true,
   "description": "A tiny dependency-free data grid for the web",
+  "keywords": [
+    "grid",
+    "table",
+    "datagrid",
+    "vanilla",
+    "no-dependencies",
+    "typescript",
+    "csv",
+    "markdown",
+    "pivot",
+    "tree"
+  ],
+  "homepage": "https://github.com/SimonWaldherr/vanillagrid.js#readme",
+  "bugs": {
+    "url": "https://github.com/SimonWaldherr/vanillagrid.js/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SimonWaldherr/vanillagrid.js.git"
+  },
+  "license": "MIT",
+  "author": "Simon Waldherr",
+  "main": "dist/vanillagrid.umd.js",
+  "module": "dist/vanillagrid.esm.js",
+  "types": "dist/vanillagrid.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/vanillagrid.d.ts",
+      "import": "./dist/vanillagrid.esm.js",
+      "require": "./dist/vanillagrid.umd.js",
+      "default": "./dist/vanillagrid.umd.js"
+    },
+    "./style.css": "./dist/vanillagrid.min.css",
+    "./pivot": "./dist/vg-pivot-d3.min.js",
+    "./pivot.css": "./dist/vg-pivot-d3.min.css",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": [
+    "*.css"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node scripts/serve.js",
     "build": "npm run clean && npm run rollup && npm run minify-css && npm run minify-pivot",
     "clean": "rm -rf dist && mkdir -p dist",
     "rollup": "rollup -c rollup.config.mjs",
-    "minify-css": "cleancss -o dist/vanillagrid.min.css vanillagrid.css && cleancss -o dist/vg-pivot-d3.min.css vg-pivot-d3.css",
-    "minify-pivot": "terser vg-pivot-d3.js --compress --mangle --output dist/vg-pivot-d3.min.js"
+    "minify-css": "cleancss -o dist/vanillagrid.min.css src/vanillagrid.css && cleancss -o dist/vg-pivot-d3.min.css src/vg-pivot-d3.css",
+    "minify-pivot": "terser src/vg-pivot-d3.js --compress --mangle --output dist/vg-pivot-d3.min.js"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^29.0.0",
@@ -23,3 +72,4 @@
     "typescript": "^5.9.3"
   }
 }
+
