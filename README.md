@@ -39,6 +39,8 @@ Outputs to `dist/`:
 - `dist/vg-pivot-d3.min.js` - Pivot chart plugin
 - `dist/vg-pivot-d3.min.css` - Pivot chart styles
 
+`dist/` is generated output and is not committed to the `main` branch. The CI workflow builds it and publishes the generated assets through the `gh-pages` branch.
+
 ## CI / GitHub Pages
 
 On every push to `main` (and via manual `workflow_dispatch`), GitHub Actions now:
