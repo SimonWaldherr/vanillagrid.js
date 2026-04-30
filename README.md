@@ -165,14 +165,17 @@ See [TypeScript definitions](dist/vanillagrid.d.ts) for complete API documentati
 
 Key methods:
 - `setData(data)` - Replace grid data
+- `setColumns(columns)` - Replace column definitions at runtime (preserves data, sort, filter, pagination)
 - `getData()` - Get current data
 - `setFilter(text, options)` - Apply filter
 - `setSort(key, direction)` - Apply sorting
 - `setGroupBy(key)` - Group by column
+- `refresh()` - Re-render the grid (toolbar, header, body, pager) without changing state
 - `downloadCSV(filename)` - Export to CSV
 - `downloadMarkdown(filename)` - Export to Markdown
 - `getSelectedRows()` - Get selected rows (when selectable: true)
 - `clearSelection()` - Clear row selection
+- `destroy()` / `dispose()` - Detach event handlers and restore the original container
 
 ## Run Locally
 

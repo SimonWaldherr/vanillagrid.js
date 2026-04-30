@@ -127,7 +127,8 @@
                         totalGroups: n => `${n} group(s)`,
                     },
                     group: { count: 'Count', min: 'min', max: 'max' },
-                    aria: { toggleGroup: 'Toggle group', expandRow: 'Expand', collapseRow: 'Collapse' },
+                    aria: { toggleGroup: 'Toggle group', expandRow: 'Expand', collapseRow: 'Collapse', clearFilter: 'Clear filter' },
+                    noResults: (term) => term ? `No results for "${term}".` : 'No rows to display.',
                     export: { button: 'Export', csv: 'CSV', markdown: 'Markdown', format: 'Format' }
                 },
                 // Tree options
@@ -261,6 +262,10 @@
         /** Destroy grid instance and clean up DOM / document handlers. */
         destroy() {
             try {
+                if (this._typingPulseTimer) {
+                    clearTimeout(this._typingPulseTimer);
+                    this._typingPulseTimer = null;
+                }
                 if (this._onDocClickFilterMode) {
                     document.removeEventListener('click', this._onDocClickFilterMode);
                     this._onDocClickFilterMode = null;
@@ -281,6 +286,42 @@
         dispose() { this.destroy(); }
         /** Get a shallow copy of current data. */
         getData() { return this.data.slice(); }
+        /**
+         * Re-render the entire grid (toolbar, header, body, pager) without changing data or state.
+         * Useful after external mutations to row objects, column option mutations, or i18n changes.
+         */
+        refresh() {
+            if (!this.root)
+                return;
+            this._renderToolbar();
+            this._renderHeader();
+            this._renderBody();
+            this._renderPager();
+        }
+        /**
+         * Replace the column definitions at runtime and re-render.
+         * Preserves data, sort, filter and pagination state.
+         * @param columns New column definitions array (same shape as constructor `columns` option).
+         */
+        setColumns(columns) {
+            if (!Array.isArray(columns))
+                return;
+            this.opts.columns = columns.slice();
+            this.columns = this.opts.columns;
+            // Drop sort key if it no longer exists; keep filter/page.
+            if (this.state.sortKey && !this.columns.some(c => c.key === this.state.sortKey)) {
+                this.state.sortKey = null;
+            }
+            // Clear column-width overrides for removed columns
+            if (this.state.columnWidths) {
+                const validKeys = new Set(this.columns.map(c => c.key));
+                for (const k of Array.from(this.state.columnWidths.keys())) {
+                    if (!validKeys.has(k))
+                        this.state.columnWidths.delete(k);
+                }
+            }
+            this.refresh();
+        }
         /**
          * Set grouping by a column key (or null to disable).
          * Re-renders body and pager.
@@ -597,7 +638,10 @@
         <div class="vg-toolbar-row">
           ${filterable ? `
           <div class="vg-filter">
-            <input type="text" class="vg-filter-input" placeholder="${this._escAttr(i18n.filterPlaceholder)}" value="${this._escAttr(this.state.filter)}" aria-label="${this._escAttr(i18n.filterPlaceholder)}" />
+            <div class="vg-filter-input-wrap${this.state.filter ? ' has-value' : ''}">
+              <input type="text" class="vg-filter-input" placeholder="${this._escAttr(i18n.filterPlaceholder)}" value="${this._escAttr(this.state.filter)}" aria-label="${this._escAttr(i18n.filterPlaceholder)}" />
+              <button type="button" class="vg-filter-clear" aria-label="${this._escAttr((i18n.aria && i18n.aria.clearFilter) || 'Clear filter')}" title="${this._escAttr((i18n.aria && i18n.aria.clearFilter) || 'Clear filter')}" tabindex="-1">×</button>
+            </div>
             <div class="vg-filter-mode">
               <div class="vg-filter-mode-btn" aria-label="Filter mode">
                 <span class="vg-filter-mode-current">${this._esc(i18n.search[this.state.filterMode])}</span>
@@ -640,19 +684,44 @@
             const selExportFmt = this.toolbarEl.querySelector('.vg-export-format');
             // column toggles may be in toolbar depending on config
             if (input) {
+                const inputWrap = this.toolbarEl.querySelector('.vg-filter-input-wrap');
+                const updateClearVisibility = () => {
+                    if (inputWrap)
+                        inputWrap.classList.toggle('has-value', !!input.value);
+                };
                 input.oninput = () => {
-                    // Add typing animation
-                    input.style.transform = 'scale(1.02)';
-                    setTimeout(() => {
-                        input.style.transform = '';
-                    }, 100);
+                    // Add typing pulse class (CSS handles the animation, no inline style mutation)
+                    input.classList.add('vg-typing');
+                    if (this._typingPulseTimer)
+                        clearTimeout(this._typingPulseTimer);
+                    this._typingPulseTimer = setTimeout(() => {
+                        input.classList.remove('vg-typing');
+                        this._typingPulseTimer = null;
+                    }, 120);
+                    updateClearVisibility();
                     this._applyFilter();
                 };
+                const btnClear = this.toolbarEl.querySelector('.vg-filter-clear');
+                if (btnClear) {
+                    btnClear.onclick = (e) => {
+                        e.preventDefault();
+                        if (!input.value)
+                            return;
+                        input.value = '';
+                        updateClearVisibility();
+                        this._applyFilter();
+                        input.focus();
+                    };
+                }
                 // Enhanced keyboard navigation
                 input.onkeydown = (e) => {
                     switch (e.key) {
                         case 'Escape':
+                            if (!input.value)
+                                break;
                             input.value = '';
+                            if (inputWrap)
+                                inputWrap.classList.remove('has-value');
                             this._applyFilter();
                             break;
                         case 'ArrowDown':
@@ -1846,19 +1915,37 @@
                 this._renderPager();
             }
         }
+        /** Build the message shown when no rows match. Honors i18n.noResults if defined. */
+        _buildEmptyMessage() {
+            const term = (this.state.filter || '').trim();
+            const i18nNoResults = this.opts.i18n && this.opts.i18n.noResults;
+            if (term && typeof i18nNoResults === 'function') {
+                try {
+                    return i18nNoResults(term);
+                }
+                catch { /* fall through */ }
+            }
+            return this.opts.emptyMessage;
+        }
+        /** Append an empty-state row to tbody and return it. */
+        _appendEmptyRow() {
+            const tr = document.createElement('tr');
+            const td = document.createElement('td');
+            td.colSpan = this._colCount();
+            td.className = 'vg-empty';
+            td.textContent = this._buildEmptyMessage();
+            tr.appendChild(td);
+            this.tbodyEl.appendChild(tr);
+            return tr;
+        }
         _renderBody() {
             const result = this._process();
             this.tbodyEl.innerHTML = '';
             if (this.opts.tree.enabled) {
                 const rows = result.pageFlatRows || [];
                 if (rows.length === 0) {
-                    const tr = document.createElement('tr');
-                    const td = document.createElement('td');
-                    td.colSpan = this._colCount();
-                    td.className = 'vg-empty';
-                    td.textContent = this.opts.emptyMessage;
-                    tr.appendChild(td);
-                    this.tbodyEl.appendChild(tr);
+                    this._appendEmptyRow();
+                    this._updateAriaCounts(0);
                     return;
                 }
                 rows.forEach(meta => {
@@ -1868,13 +1955,8 @@
             else if (!result.hasGroups) {
                 const rows = result.pageRows;
                 if (rows.length === 0) {
-                    const tr = document.createElement('tr');
-                    const td = document.createElement('td');
-                    td.colSpan = this._colCount();
-                    td.className = 'vg-empty';
-                    td.textContent = this.opts.emptyMessage;
-                    tr.appendChild(td);
-                    this.tbodyEl.appendChild(tr);
+                    this._appendEmptyRow();
+                    this._updateAriaCounts(0);
                     return;
                 }
                 rows.forEach(row => {
@@ -1884,13 +1966,8 @@
             else {
                 const groups = result.pageGroups;
                 if (groups.length === 0) {
-                    const tr = document.createElement('tr');
-                    const td = document.createElement('td');
-                    td.colSpan = this._colCount();
-                    td.className = 'vg-empty';
-                    td.textContent = this.opts.emptyMessage;
-                    tr.appendChild(td);
-                    this.tbodyEl.appendChild(tr);
+                    this._appendEmptyRow();
+                    this._updateAriaCounts(0);
                     return;
                 }
                 groups.forEach(g => {
@@ -1921,6 +1998,30 @@
             // After body render, update header select-all state and apply column visibility
             this._updateHeaderSelectionToggle();
             this._applyColumnVisibility();
+            // Update accessible row/col counts based on processed result
+            this._updateAriaCounts(this._countVisibleRows(result));
+        }
+        /** Count the number of data rows currently visible (excluding empty/group header rows). */
+        _countVisibleRows(result) {
+            if (!result)
+                return 0;
+            if (this.opts.tree.enabled)
+                return (result.pageFlatRows || []).length;
+            if (result.hasGroups) {
+                return (result.pageGroups || []).reduce((acc, g) => acc + (g.rows ? g.rows.length : 0), 0);
+            }
+            return (result.pageRows || []).length;
+        }
+        /** Set aria-rowcount and aria-colcount on the table for assistive tech. */
+        _updateAriaCounts(visibleRows) {
+            if (!this.tableEl)
+                return;
+            try {
+                // Header row + data rows
+                this.tableEl.setAttribute('aria-rowcount', String(1 + (visibleRows | 0)));
+                this.tableEl.setAttribute('aria-colcount', String(this._colCount()));
+            }
+            catch { /* non-fatal */ }
         }
         // -------- Internal: Markdown helpers --------
         _parseMarkdownTables(md) {

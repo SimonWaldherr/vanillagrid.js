@@ -116,7 +116,9 @@ export interface VGI18n {
         toggleGroup: string;
         expandRow: string;
         collapseRow: string;
+        clearFilter: string;
     };
+    noResults?: (term: string) => string;
     export: {
         button: string;
         csv: string;
@@ -277,6 +279,17 @@ declare class VanillaGrid<T extends Record<string, any> = Record<string, any>> {
     /** Get a shallow copy of current data. */
     getData(): VGRow[];
     /**
+     * Re-render the entire grid (toolbar, header, body, pager) without changing data or state.
+     * Useful after external mutations to row objects, column option mutations, or i18n changes.
+     */
+    refresh(): void;
+    /**
+     * Replace the column definitions at runtime and re-render.
+     * Preserves data, sort, filter and pagination state.
+     * @param columns New column definitions array (same shape as constructor `columns` option).
+     */
+    setColumns(columns: any): void;
+    /**
      * Set grouping by a column key (or null to disable).
      * Re-renders body and pager.
      */
@@ -385,7 +398,15 @@ declare class VanillaGrid<T extends Record<string, any> = Record<string, any>> {
     _showContextMenu(x: any, y: any, rowData: any): void;
     _copyRowToClipboard(rowData: any): void;
     _deleteRow(rowData: any): void;
+    /** Build the message shown when no rows match. Honors i18n.noResults if defined. */
+    _buildEmptyMessage(): any;
+    /** Append an empty-state row to tbody and return it. */
+    _appendEmptyRow(): HTMLTableRowElement;
     _renderBody(): void;
+    /** Count the number of data rows currently visible (excluding empty/group header rows). */
+    _countVisibleRows(result: any): any;
+    /** Set aria-rowcount and aria-colcount on the table for assistive tech. */
+    _updateAriaCounts(visibleRows: any): void;
     _parseMarkdownTables(md: any): any[];
     _mdInlineToHtml(src: any): string;
     _slugify(s: any): string;
