@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>VanillaGrid • Rich Cell Types</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="../dist/vanillagrid.min.js"></script>
+  <link rel="stylesheet" href="../dist/vanillagrid.min.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body { 
+      padding: 24px; 
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      font-family: system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .header {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .header h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      color: #111827;
+    }
+    .header p {
+      margin: 0 0 16px;
+      color: #6b7280;
+      font-size: 16px;
+    }
+    .cell-types {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .cell-type {
+      background: #fffbeb;
+      padding: 12px;
+      border-radius: 8px;
+      text-align: center;
+      border: 2px solid #fde68a;
+    }
+    .cell-type-icon {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    .cell-type-name {
+      font-weight: 600;
+      color: #92400e;
+      font-size: 14px;
+    }
+    /* Removed grid-container demo styling: demo wrapper not styled here */
+    @media (max-width: 768px) {
+      body { padding: 16px; }
+      .header { padding: 16px; }
+      .header h1 { font-size: 22px; }
+      /* Removed grid-container demo styling in media query */
+      .cell-types { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎨 Rich Cell Types</h1>
+      <p>Showcase all supported cell rendering types with beautiful formatting</p>
+      
+      <div class="cell-types">
+        <div class="cell-type">
+          <div class="cell-type-icon">🖼️</div>
+          <div class="cell-type-name">Images</div>
+        </div>
+        <div class="cell-type">
+          <div class="cell-type-icon">⭐</div>
+          <div class="cell-type-name">Ratings</div>
+        </div>
+        <div class="cell-type">
+          <div class="cell-type-icon">📊</div>
+          <div class="cell-type-name">Progress Bars</div>
+        </div>
+        <div class="cell-type">
+          <div class="cell-type-icon">🏷️</div>
+          <div class="cell-type-name">Badges</div>
+        </div>
+        <div class="cell-type">
+          <div class="cell-type-icon">🔗</div>
+          <div class="cell-type-name">Links</div>
+        </div>
+        <div class="cell-type">
+          <div class="cell-type-icon">🔘</div>
+          <div class="cell-type-name">Buttons</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-container">
+      <div id="rich-grid"></div>
+    </div>
+  </div>
+  <script>
+    const products = [
+      { 
+        id: 1, 
+        name: 'Caffè Mocha', 
+        image: 'https://picsum.photos/seed/mocha/60/40',
+        price: 3.75, 
+        rating: 4.5,
+        progress: 85,
+        status: 'available',
+        url: 'https://example.com/mocha',
+        action: 'View Details'
+      },
+      { 
+        id: 2, 
+        name: 'Espresso', 
+        image: 'https://picsum.photos/seed/espresso/60/40',
+        price: 2.10, 
+        rating: 4.8,
+        progress: 92,
+        status: 'low',
+        url: 'https://example.com/espresso',
+        action: 'Reorder'
+      },
+      { 
+        id: 3, 
+        name: 'Cheese Cake', 
+        image: 'https://picsum.photos/seed/cheese/60/40',
+        price: 4.95, 
+        rating: 4.2,
+        progress: 45,
+        status: 'out',
+        url: 'https://example.com/cheese',
+        action: 'Contact Supplier'
+      },
+      { 
+        id: 4, 
+        name: 'Blueberry Pie', 
+        image: 'https://picsum.photos/seed/pie/60/40',
+        price: 5.25, 
+        rating: 4.6,
+        progress: 78,
+        status: 'available',
+        url: 'https://example.com/pie',
+        action: 'View Details'
+      },
+      { 
+        id: 5, 
+        name: 'Club Sandwich', 
+        image: 'https://picsum.photos/seed/sandwich/60/40',
+        price: 6.80, 
+        rating: 4.1,
+        progress: 23,
+        status: 'low',
+        url: 'https://example.com/sandwich',
+        action: 'Reorder'
+      }
+    ];
+
+    const grid = new VanillaGrid('#rich-grid', {
+      data: products,
+      columns: [
+        { key: 'id', label: 'ID', type: 'number', sortable: true },
+        { 
+          key: 'image', 
+          label: 'Image', 
+          type: 'image',
+          image: { alt: 'Product image', width: 60, height: 40 }
+        },
+        { key: 'name', label: 'Product', sortable: true },
+        { key: 'price', label: 'Price', type: 'number', sortable: true },
+        {
+          key: 'rating',
+          label: 'Rating',
+          type: 'custom',
+          render: (value) => {
+            const stars = '★'.repeat(Math.floor(value)) + '☆'.repeat(5 - Math.floor(value));
+            return `<span class="vg-rating">${stars} ${value}</span>`;
+          }
+        },
+        {
+          key: 'progress',
+          label: 'Stock %',
+          type: 'custom',
+          render: (value) => {
+            return `<div class="vg-progress">
+              <div class="vg-progress-bar" style="width: ${value}%"></div>
+              <div class="vg-progress-text">${value}%</div>
+            </div>`;
+          }
+        },
+        {
+          key: 'status',
+          label: 'Status',
+          type: 'custom',
+          render: (value) => {
+            const badges = {
+              available: 'success',
+              low: 'warning',
+              out: 'error'
+            };
+            return `<span class="vg-badge vg-badge-${badges[value] || 'default'}">${value}</span>`;
+          }
+        },
+        { 
+          key: 'url', 
+          label: 'Link', 
+          type: 'link',
+          link: { text: 'Visit', target: '_blank' }
+        },
+        {
+          key: 'action',
+          label: 'Action',
+          type: 'button',
+          button: {
+            text: 'Action',
+            onClick: (row, btn) => {
+              alert(`Action clicked for ${row.name}: ${row.action}`);
+            }
+          }
+        }
+      ],
+      filterable: true,
+      pageSize: 10,
+      columnsMenu: { location: 'pager', showSearch: true, showSelectAll: true }
+    });
+  </script>
+</body>
+</html>

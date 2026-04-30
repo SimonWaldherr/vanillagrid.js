@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>VanillaGrid • Interactive Demos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../dist/vanillagrid.min.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body { 
+      font-family: system-ui, -apple-system, sans-serif; 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      margin: 0;
+      min-height: 100vh;
+      padding: 24px 0;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+    .hero { 
+      background: white; 
+      padding: 32px; 
+      border-radius: 16px; 
+      margin-bottom: 32px; 
+      text-align: center;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    }
+    .hero h1 { margin: 0 0 12px 0; font-size: 36px; color: #111827; }
+    .hero p { margin: 0 0 20px; color: #6b7280; font-size: 18px; line-height: 1.6; }
+    .hero-stats {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      margin-top: 20px;
+    }
+    .hero-stat {
+      text-align: center;
+    }
+    .hero-stat-number {
+      font-size: 24px;
+      font-weight: 700;
+      color: #667eea;
+      margin-bottom: 4px;
+    }
+    .hero-stat-label {
+      font-size: 13px;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .new-badge { 
+      display: inline-block; 
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); 
+      color: white; 
+      font-size: 11px; 
+      font-weight: 600; 
+      padding: 4px 10px; 
+      border-radius: 12px; 
+      margin-left: 8px;
+      box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+    }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+    .card { 
+      background: white; 
+      border: 2px solid #e5e7eb; 
+      border-radius: 16px; 
+      padding: 24px; 
+      text-decoration: none; 
+      color: #111827; 
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
+      position: relative; 
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+    }
+    .card:hover { 
+      border-color: #667eea; 
+      box-shadow: 0 8px 24px rgba(102, 126, 234, 0.2);
+      transform: translateY(-4px);
+    }
+    .card.featured { 
+      border-color: #10b981; 
+      background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+    }
+    .card.featured .feature-icon { color: #10b981; }
+    .card.featured:hover { 
+      border-color: #059669; 
+      box-shadow: 0 8px 24px rgba(16, 185, 129, 0.2);
+    }
+    .card h3 { margin: 0 0 8px 0; font-size: 18px; font-weight: 600; display: flex; align-items: center; }
+    .card p { margin: 0; color: #6b7280; font-size: 14px; line-height: 1.5; flex: 1; }
+    .feature-icon { 
+      font-size: 28px; 
+      margin-bottom: 12px; 
+      display: block;
+      opacity: 0.9;
+    }
+    
+    /* Mobile optimizations */
+    @media (max-width: 768px) {
+      .wrap { margin: 16px auto; padding: 0 12px; }
+      .hero { padding: 20px 16px; margin-bottom: 20px; }
+      .hero h1 { font-size: 24px; }
+      .hero p { font-size: 14px; }
+      .grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 14px; }
+      .card h3 { font-size: 15px; }
+      .card p { font-size: 12px; }
+      /* Touch-friendly cards */
+      .card:active { 
+        transform: scale(0.98);
+        transition: transform 0.1s ease;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .hero h1 { font-size: 20px; }
+      .new-badge { font-size: 10px; padding: 2px 6px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <h1>🚀 VanillaGrid Demo Gallery</h1>
+      <p>Explore our comprehensive collection of interactive demos showcasing all features</p>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-number">12</div>
+          <div class="hero-stat-label">Demos</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-number">7</div>
+          <div class="hero-stat-label">Themes</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-number">0</div>
+          <div class="hero-stat-label">Dependencies</div>
+        </div>
+      </div>
+    </div>
+    <div class="grid">
+      <a class="card featured" href="basic.html">
+        <span class="feature-icon">🚀</span>
+        <h3>Basic Grid <span class="new-badge">START HERE</span></h3>
+        <p>Essential features including sorting, filtering, pagination, and column management. Perfect introduction to VanillaGrid.</p>
+      </a>
+      <a class="card" href="tree.html">
+        <span class="feature-icon">🌳</span>
+        <h3>Hierarchical Tree View</h3>
+        <p>Organize nested data with expandable/collapsible tree structures and unlimited depth support.</p>
+      </a>
+      <a class="card" href="rich-cells.html">
+        <span class="feature-icon">🎨</span>
+        <h3>Rich Cell Types</h3>
+        <p>Showcase all cell types: images, ratings (⭐), progress bars, badges, links, and interactive buttons.</p>
+      </a>
+      <a class="card featured" href="pivot.html">
+        <span class="feature-icon">📊</span>
+        <h3>Advanced Pivot Table <span class="new-badge">D3.JS</span></h3>
+        <p>Excel-like pivot builder with drag-and-drop interface, advanced filtering, and comprehensive export capabilities.</p>
+      </a>
+      <a class="card" href="advanced.html">
+        <span class="feature-icon">⚙️</span>
+        <h3>Advanced Features</h3>
+        <p>Column resizing, inline editing, keyboard navigation, context menus, and custom cell renderers.</p>
+      </a>
+      <a class="card" href="remote.html">
+        <span class="feature-icon">🌐</span>
+        <h3>Remote Data Grid</h3>
+        <p>Server-side pagination, sorting, and filtering with async data loading and loading states.</p>
+      </a>
+      <a class="card" href="selection-columns.html">
+        <span class="feature-icon">✅</span>
+        <h3>Selection & Columns</h3>
+        <p>Row selection with checkboxes, multi-select support, and configurable columns menu with visibility toggle.</p>
+      </a>
+      <a class="card" href="grouping.html">
+        <span class="feature-icon">📦</span>
+        <h3>Grouping & Aggregation</h3>
+        <p>Group data by multiple fields with sum, average, min, max calculations and expandable groups.</p>
+      </a>
+      <a class="card" href="export.html">
+        <span class="feature-icon">💾</span>
+        <h3>Export & Print</h3>
+        <p>Export to CSV/Markdown formats with customizable formatting and browser-based print functionality.</p>
+      </a>
+      <a class="card" href="data-explorer.html">
+        <span class="feature-icon">🔬</span>
+        <h3>Data Explorer</h3>
+        <p>Load CSV/JSON/XML files, dynamically analyze data, apply transformations, and export results.</p>
+      </a>
+      <a class="card featured" href="code-generator.html">
+        <span class="feature-icon">⚙️</span>
+        <h3>Code Generator <span class="new-badge">NEW</span></h3>
+        <p>Visual configuration tool with live preview. Generate production-ready HTML, JavaScript, and complete examples.</p>
+      </a>
+      <a class="card" href="quick-test.html">
+        <span class="feature-icon">🧪</span>
+        <h3>Quick Test</h3>
+        <p>Interactive testing playground for experimenting with search modes, regex patterns, and filters.</p>
+      </a>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>VanillaGrid • Advanced Pivot Table</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="../dist/vanillagrid.min.js"></script>
+  <script src="../dist/vg-pivot-d3.min.js"></script>
+  <link rel="stylesheet" href="../dist/vanillagrid.min.css" />
+  <link rel="stylesheet" href="../dist/vg-pivot-d3.min.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body { 
+      padding: 24px; 
+      background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+      font-family: system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+    .header {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .header h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      color: #111827;
+    }
+    .header p {
+      margin: 0 0 16px;
+      color: #6b7280;
+      font-size: 16px;
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .feature-card {
+      background: #eff6ff;
+      padding: 16px;
+      border-radius: 8px;
+      text-align: center;
+      border: 2px solid #bfdbfe;
+    }
+    .feature-card-icon {
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+    .feature-card-title {
+      font-weight: 600;
+      color: #1e40af;
+      margin-bottom: 4px;
+    }
+    .feature-card-desc {
+      font-size: 13px;
+      color: #6b7280;
+    }
+    .controls {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .controls h3 {
+      margin: 0 0 12px;
+      font-size: 18px;
+      color: #111827;
+    }
+    .btn-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .btn-primary {
+      padding: 10px 16px;
+      border: none;
+      background: #3b82f6;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .btn-primary:hover {
+      background: #2563eb;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+    }
+    .btn-secondary {
+      padding: 8px 14px;
+      border: 1px solid #d1d5db;
+      background: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .btn-secondary:hover {
+      background: #eff6ff;
+      border-color: #3b82f6;
+      color: #1d4ed8;
+    }
+    /* Removed grid-container demo styling: demo wrapper not styled here */
+    @media (max-width: 768px) {
+      body { padding: 16px; }
+      .header { padding: 16px; }
+      .header h1 { font-size: 22px; }
+      .controls { padding: 16px; }
+      /* Removed grid-container demo styling in media query */
+      .features-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📊 Advanced Pivot Table Builder</h1>
+      <p>Excel-like pivot tables with drag-and-drop interface, advanced filtering, and comprehensive export capabilities</p>
+      <p style="margin-top:8px; font-size:14px; color:#0f172a;">Tip: You can toggle Pivot mode from the grid toolbar using the <strong>📊 Pivot</strong> button for a quicker workflow.</p>
+      
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-card-icon">🎯</div>
+          <div class="feature-card-title">Drag & Drop</div>
+          <div class="feature-card-desc">Intuitive field management</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-icon">🔍</div>
+          <div class="feature-card-title">Advanced Filtering</div>
+          <div class="feature-card-desc">Real-time data filtering</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-icon">📊</div>
+          <div class="feature-card-title">Smart Aggregations</div>
+          <div class="feature-card-desc">Multiple calculation types</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-icon">💾</div>
+          <div class="feature-card-title">Export Ready</div>
+          <div class="feature-card-desc">One-click CSV export</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <h3>Quick Analysis Templates</h3>
+      <div class="btn-group">
+        <button id="enable-pivot" class="btn-primary">🎯 Enable Pivot Mode</button>
+        <button id="load-sample" class="btn-secondary">🔄 Reload Data</button>
+        <button id="quarterly-analysis" class="btn-secondary">💰 Revenue by Quarter</button>
+        <button id="regional-analysis" class="btn-secondary">📍 Regional Performance</button>
+        <button id="channel-analysis" class="btn-secondary">🛒 Channel Analysis</button>
+        <button id="category-analysis" class="btn-secondary">📦 Category Breakdown</button>
+      </div>
+    </div>
+
+    <div class="grid-container">
+      <div id="pivot-grid"></div>
+    </div>
+  </div>
+
+  <script>
+    // Generate sample e-commerce data
+    const generateSampleData = () => {
+      const regions = ['North', 'South', 'East', 'West'];
+      const channels = ['Online', 'Retail', 'Wholesale'];
+      const categories = ['Electronics', 'Clothing', 'Books', 'Home'];
+      const quarters = ['Q1 2024', 'Q2 2024', 'Q3 2024', 'Q4 2024'];
+      
+      return Array.from({length: 200}, (_, i) => ({
+        id: i + 1,
+        region: regions[i % regions.length],
+        channel: channels[i % channels.length],
+        category: categories[i % categories.length],
+        quarter: quarters[i % quarters.length],
+        product: `Product ${i % 20 + 1}`,
+        revenue: Math.round((Math.random() * 5000 + 500) * 100) / 100,
+        units: Math.floor(Math.random() * 100) + 10,
+        cost: Math.round((Math.random() * 2000 + 200) * 100) / 100,
+        profit: 0, // calculated below
+        month: Math.floor(Math.random() * 12) + 1,
+        year: 2024
+      }));
+    };
+
+    let sampleData = generateSampleData();
+    // Calculate profit
+    sampleData.forEach(item => {
+      item.profit = Math.round((item.revenue - item.cost) * 100) / 100;
+    });
+
+    const grid = new VanillaGrid('#pivot-grid', {
+      data: sampleData,
+      columns: [
+        { key: 'id', label: 'ID', type: 'number' },
+        { key: 'region', label: 'Region' },
+        { key: 'channel', label: 'Channel' },
+        { key: 'category', label: 'Category' },
+        { key: 'quarter', label: 'Quarter' },
+        { key: 'product', label: 'Product' },
+        { 
+          key: 'revenue', 
+          label: 'Revenue', 
+          type: 'number',
+          format: (value) => `$${value.toLocaleString()}`
+        },
+        { key: 'units', label: 'Units', type: 'number' },
+        { 
+          key: 'cost', 
+          label: 'Cost', 
+          type: 'number',
+          format: (value) => `$${value.toLocaleString()}`
+        },
+        { 
+          key: 'profit', 
+          label: 'Profit', 
+          type: 'number',
+          format: (value) => `$${value.toLocaleString()}`
+        },
+        { key: 'month', label: 'Month', type: 'number' },
+        { key: 'year', label: 'Year', type: 'number' }
+      ],
+      filterable: true,
+      pageSize: 20,
+      columnsMenu: { location: 'pager', showSearch: true, showSelectAll: true },
+      exporting: { enabled: true, formats: ['csv', 'md'] }
+    });
+
+    // Event handlers
+    document.getElementById('enable-pivot').onclick = () => {
+      // Prefer clicking the toolbar Pivot button to demonstrate the new UI.
+      try {
+        const btn = grid.root?.querySelector('.vg-pivot-enter');
+        if (btn) {
+          btn.click();
+          return;
+        }
+      } catch (e) {}
+      // Fallback
+      grid.enablePivot({ rows: [], columns: [], values: [], aggregations: {} });
+    };
+
+    document.getElementById('load-sample').onclick = () => {
+      sampleData = generateSampleData();
+      sampleData.forEach(item => {
+        item.profit = Math.round((item.revenue - item.cost) * 100) / 100;
+      });
+      grid.setData(sampleData);
+    };
+
+    document.getElementById('quarterly-analysis').onclick = () => {
+      grid.enablePivot({
+        rows: ['quarter'],
+        columns: ['channel'],
+        values: ['revenue', 'profit'],
+        aggregations: {
+          revenue: 'sum',
+          profit: 'sum'
+        }
+      });
+    };
+
+    document.getElementById('regional-analysis').onclick = () => {
+      grid.enablePivot({
+        rows: ['region', 'category'],
+        columns: ['quarter'],
+        values: ['revenue', 'units'],
+        aggregations: {
+          revenue: 'sum',
+          units: 'sum'
+        }
+      });
+    };
+
+    document.getElementById('channel-analysis').onclick = () => {
+      grid.enablePivot({
+        rows: ['channel'],
+        columns: ['category'],
+        values: ['revenue', 'profit', 'units'],
+        aggregations: {
+          revenue: 'sum',
+          profit: 'sum',
+          units: 'sum'
+        }
+      });
+    };
+
+    document.getElementById('category-analysis').onclick = () => {
+      grid.enablePivot({
+        rows: ['category', 'product'],
+        columns: ['region'],
+        values: ['revenue', 'cost', 'profit'],
+        aggregations: {
+          revenue: 'sum',
+          cost: 'sum',
+          profit: 'sum'
+        }
+      });
+    };
+  </script>
+</body>
+</html>

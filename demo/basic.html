@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>VanillaGrid • Basic Demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="../dist/vanillagrid.min.js"></script>
+  <link rel="stylesheet" href="../dist/vanillagrid.min.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body { 
+      padding: 24px; 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .header {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .header h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      color: #111827;
+    }
+    .header p {
+      margin: 0;
+      color: #6b7280;
+      font-size: 16px;
+    }
+    .search-tip {
+      background: #e0e7ff;
+      padding: 16px;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+      margin: 16px 0;
+    }
+    .search-tip h4 { 
+      margin: 0 0 8px 0; 
+      color: #4338ca;
+      font-size: 16px;
+    }
+    .search-tip ul { 
+      margin: 8px 0 0; 
+      padding-left: 20px;
+      color: #374151;
+    }
+    .search-tip li {
+      margin: 4px 0;
+      font-size: 14px;
+    }
+    .search-tip code {
+      background: rgba(255,255,255,0.8);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      color: #4338ca;
+    }
+    /* Removed grid-container demo styling: demo wrapper no longer styled here */
+    
+    @media (max-width: 768px) {
+      body { padding: 16px; }
+      .header { padding: 16px; }
+      .header h1 { font-size: 22px; }
+      .header p { font-size: 14px; }
+      /* Removed grid-container demo styling in media query */
+      .search-tip { padding: 12px; }
+      .search-tip h4 { font-size: 14px; }
+      .search-tip li { font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🚀 Basic Grid Demo</h1>
+      <p>Essential features: sorting, filtering, pagination, and column management</p>
+      
+      <div class="search-tip">
+        <h4>💡 Search & Filter Tips</h4>
+        <ul>
+          <li><strong>Simple search:</strong> Type <code>tea</code> to find all tea products</li>
+          <li><strong>Regex search:</strong> Try <code>mocha|latte</code> for multiple terms</li>
+          <li><strong>Column filters:</strong> Use the filter dropdowns in each column header</li>
+          <li><strong>Quick sort:</strong> Click column headers to sort ascending/descending</li>
+          <li><strong>Columns menu:</strong> Toggle column visibility using the ⚙ Settings button</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="grid-container">
+      <div id="grid"></div>
+    </div>
+  </div>
+  
+  <script>
+    const products = [
+      { id: 1, name: 'Caffè Mocha',   price: 3.75,  category: 'Drinks', region: 'Europe', inStock: true },
+      { id: 2, name: 'Espresso',      price: 2.10,  category: 'Drinks', region: 'Europe', inStock: true },
+      { id: 3, name: 'Cheese Cake',   price: 4.95,  category: 'Dessert', region: 'America', inStock: false },
+      { id: 4, name: 'Blueberry Pie', price: 5.25,  category: 'Dessert', region: 'America', inStock: true },
+      { id: 5, name: 'Club Sandwich', price: 6.80,  category: 'Food', region: 'America', inStock: true },
+      { id: 6, name: 'Green Tea',     price: 2.50,  category: 'Drinks', region: 'Asia', inStock: true },
+      { id: 7, name: 'Matcha Latte',  price: 4.25,  category: 'Drinks', region: 'Asia', inStock: false },
+      { id: 8, name: 'Tiramisu',      price: 5.95,  category: 'Dessert', region: 'Europe', inStock: true },
+      { id: 9, name: 'Croissant',     price: 3.20,  category: 'Food', region: 'Europe', inStock: true },
+      { id: 10, name: 'Bubble Tea',   price: 4.50,  category: 'Drinks', region: 'Asia', inStock: true }
+    ];
+
+    const grid = new VanillaGrid('#grid', {
+      data: products,
+      columns: [
+        { key: 'id', label: 'ID', type: 'number', sortable: true, width: 60 },
+        { key: 'name', label: 'Product', sortable: true, width: 140 },
+        { key: 'price', label: 'Price', type: 'number', sortable: true, width: 80, 
+          formatter: (val) => '$' + val.toFixed(2) },
+        { key: 'category', label: 'Category', sortable: true, width: 100 },
+        { key: 'region', label: 'Region', sortable: true, width: 100 },
+        { key: 'inStock', label: 'In Stock', sortable: true, width: 80,
+          formatter: (val) => val ? '✅ Yes' : '❌ No' }
+      ],
+      filterable: false,
+      pageSize: 8
+    });
+
+    // Add demo instructions
+    console.log('Enhanced Search Demo Ready!');
+    console.log('Try these search examples:');
+    console.log('- Simple: "tea" (finds Green Tea, Matcha Latte, Bubble Tea)');
+    console.log('- Case-Sensitive: "Tea" vs "tea"');
+    console.log('- Regex: "mocha|latte" (multiple terms)');
+    console.log('- Tree/Filter: Explore by category, region, or stock status');
+  </script>
+</body>
+</html>

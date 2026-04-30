@@ -1,0 +1,1648 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>VanillaGrid • Code Generator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Visual code generator for VanillaGrid - create data grids with live preview" />
+  <script src="../dist/vanillagrid.min.js"></script>
+  <link rel="stylesheet" href="../dist/vanillagrid.min.css" />
+  <style>
+    :root {
+      --primary: #14b8a6;
+      --primary-hover: #0d9488;
+      --primary-light: #ccfbf1;
+      --secondary: #6b7280;
+      --secondary-hover: #4b5563;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      --bg-dark: #1f2937;
+      --bg-light: #f9fafb;
+      --text-primary: #111827;
+      --text-secondary: #6b7280;
+      --border: #e5e7eb;
+      --shadow: 0 4px 12px rgba(0,0,0,0.1);
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+    
+    * { box-sizing: border-box; }
+    
+    body { 
+      padding: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      margin: 0;
+      color: var(--text-primary);
+    }
+    
+    /* Top Navigation */
+    .top-nav {
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(10px);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-primary);
+    }
+    
+    .nav-brand svg {
+      width: 32px;
+      height: 32px;
+    }
+    
+    .nav-brand span {
+      font-weight: 700;
+      font-size: 18px;
+    }
+    
+    .nav-links {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .nav-link {
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    
+    .nav-link:hover {
+      background: var(--bg-light);
+      color: var(--text-primary);
+    }
+    
+    .container {
+      max-width: 1800px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    
+    /* Hero Section */
+    .hero {
+      text-align: center;
+      padding: 40px 20px;
+      color: white;
+    }
+    
+    .hero h1 {
+      margin: 0 0 12px;
+      font-size: 36px;
+      font-weight: 800;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    .hero p {
+      margin: 0 0 24px;
+      font-size: 18px;
+      opacity: 0.9;
+    }
+    
+    /* Presets Bar */
+    .presets-bar {
+      background: white;
+      padding: 16px 24px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 24px;
+    }
+    
+    .presets-bar h3 {
+      margin: 0 0 12px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .presets-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    
+    .preset-btn {
+      padding: 10px 18px;
+      border: 2px solid var(--border);
+      background: white;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .preset-btn:hover {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+    
+    .preset-btn.active {
+      border-color: var(--primary);
+      background: var(--primary);
+      color: white;
+    }
+    
+    .preset-btn .icon {
+      font-size: 18px;
+    }
+    
+    /* Main Layout */
+    .main-layout {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 24px;
+    }
+    
+    /* Config Panel */
+    .config-panel {
+      background: white;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      height: fit-content;
+      position: sticky;
+      top: 80px;
+      max-height: calc(100vh - 100px);
+      overflow-y: auto;
+    }
+    
+    .config-header {
+      padding: 20px;
+      background: linear-gradient(135deg, var(--primary) 0%, #0d9488 100%);
+      color: white;
+    }
+    
+    .config-header h2 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    
+    .config-header p {
+      margin: 4px 0 0;
+      font-size: 13px;
+      opacity: 0.9;
+    }
+    
+    /* Collapsible Sections */
+    .config-section {
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .config-section:last-child {
+      border-bottom: none;
+    }
+    
+    .section-toggle {
+      width: 100%;
+      padding: 16px 20px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      transition: background 0.2s;
+    }
+    
+    .section-toggle:hover {
+      background: var(--bg-light);
+    }
+    
+    .section-toggle .icon {
+      font-size: 18px;
+      margin-right: 10px;
+    }
+    
+    .section-toggle .chevron {
+      transition: transform 0.2s;
+      color: var(--text-secondary);
+    }
+    
+    .config-section.collapsed .chevron {
+      transform: rotate(-90deg);
+    }
+    
+    .section-content {
+      padding: 0 20px 20px;
+      display: grid;
+      gap: 14px;
+    }
+    
+    .config-section.collapsed .section-content {
+      display: none;
+    }
+    
+    /* Form Elements */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    
+    .form-group label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .form-group label .help {
+      cursor: help;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+    
+    .form-group input[type="text"],
+    .form-group input[type="number"],
+    .form-group select {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      transition: all 0.2s;
+      background: white;
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-light);
+    }
+    
+    .form-group input:disabled,
+    .form-group select:disabled {
+      background: var(--bg-light);
+      cursor: not-allowed;
+    }
+    
+    /* Checkbox Grid */
+    .checkbox-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 13px;
+      color: var(--text-primary);
+    }
+    
+    .checkbox-item:hover {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+    
+    .checkbox-item.checked {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+    
+    .checkbox-item input {
+      display: none;
+    }
+    
+    .checkbox-item .check-icon {
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--border);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    
+    .checkbox-item.checked .check-icon {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+    
+    .checkbox-item .label-text {
+      flex: 1;
+    }
+    
+    /* Single checkbox (full width) */
+    .checkbox-single {
+      grid-column: 1 / -1;
+    }
+    
+    /* Action Buttons */
+    .action-buttons {
+      padding: 20px;
+      display: flex;
+      gap: 10px;
+      border-top: 1px solid var(--border);
+      background: var(--bg-light);
+    }
+    
+    .btn {
+      flex: 1;
+      padding: 12px 20px;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(20, 184, 166, 0.4);
+    }
+    
+    .btn-secondary {
+      background: white;
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+    
+    .btn-secondary:hover {
+      background: var(--bg-light);
+      border-color: var(--secondary);
+    }
+    
+    /* Preview Panel */
+    .preview-panel {
+      background: white;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    
+    .panel-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-light);
+    }
+    
+    .panel-header h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .panel-header .status {
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: var(--primary-light);
+      color: var(--primary-hover);
+    }
+    
+    .preview-container {
+      padding: 20px;
+      min-height: 400px;
+      background: white;
+    }
+    
+    #preview-grid {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+    
+    /* Code Panel */
+    .code-panel {
+      background: white;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      margin-top: 24px;
+    }
+    
+    .code-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-light);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    
+    .code-header h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .code-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    
+    .code-btn {
+      padding: 8px 14px;
+      border: 1px solid var(--border);
+      background: white;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .code-btn:hover {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+    
+    .code-btn.success {
+      background: #d1fae5;
+      border-color: var(--success);
+      color: #065f46;
+    }
+    
+    /* Tabs */
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      background: white;
+      padding: 0 20px;
+    }
+    
+    .tab {
+      padding: 14px 20px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: all 0.2s;
+    }
+    
+    .tab:hover {
+      color: var(--text-primary);
+    }
+    
+    .tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    /* Code Container */
+    .code-container {
+      background: var(--bg-dark);
+      padding: 20px;
+      overflow-x: auto;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    
+    .code-container pre {
+      margin: 0;
+      color: #e5e7eb;
+      font-family: 'SF Mono', 'Fira Code', 'Monaco', 'Menlo', monospace;
+      font-size: 13px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--bg-dark);
+      color: white;
+      padding: 14px 20px;
+      border-radius: var(--radius-sm);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s ease;
+      z-index: 1000;
+    }
+    
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    
+    .toast.success {
+      background: var(--success);
+    }
+    
+    /* Tooltips */
+    [data-tooltip] {
+      position: relative;
+    }
+    
+    [data-tooltip]:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg-dark);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      white-space: nowrap;
+      z-index: 100;
+      margin-bottom: 6px;
+    }
+    
+    /* Responsive */
+    @media (max-width: 1200px) {
+      .main-layout {
+        grid-template-columns: 1fr;
+      }
+      .config-panel {
+        position: static;
+        max-height: none;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .container { padding: 16px; }
+      .hero h1 { font-size: 28px; }
+      .hero p { font-size: 16px; }
+      .presets-grid { flex-direction: column; }
+      .preset-btn { width: 100%; justify-content: center; }
+      .checkbox-grid { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+      .code-actions { width: 100%; justify-content: space-between; }
+    }
+    
+    /* Loading State */
+    .loading {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+    
+    /* Error State */
+    .error-message {
+      color: var(--error);
+      font-size: 12px;
+      margin-top: 4px;
+    }
+    
+    /* Info Badge */
+    .info-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      background: var(--bg-light);
+      border-radius: 4px;
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+  </style>
+</head>
+<body>
+  <!-- Top Navigation -->
+  <nav class="top-nav">
+    <a href="index.html" class="nav-brand">
+      <svg viewBox="0 0 32 32" fill="none">
+        <rect width="32" height="32" rx="8" fill="#14b8a6"/>
+        <path d="M8 10h16M8 16h16M8 22h10" stroke="white" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span>VanillaGrid</span>
+    </a>
+    <div class="nav-links">
+      <a href="basic.html" class="nav-link">Basic Demo</a>
+      <a href="advanced.html" class="nav-link">Advanced</a>
+      <a href="pivot.html" class="nav-link">Pivot</a>
+      <a href="https://github.com/SimonWaldherr/vanillagrid.js" class="nav-link" target="_blank">GitHub</a>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <h1>🛠️ Visual Code Generator</h1>
+    <p>Configure your grid visually, see live preview, and get production-ready code instantly</p>
+  </section>
+
+  <div class="container">
+    <!-- Presets Bar -->
+    <div class="presets-bar">
+      <h3>⚡ Quick Start Templates</h3>
+      <div class="presets-grid">
+        <button class="preset-btn active" onclick="applyPreset('minimal')" data-tooltip="Minimal, no extras">
+          <span class="icon">🟢</span>
+          <span>Minimal</span>
+        </button>
+        <button class="preset-btn" onclick="applyPreset('simple')" data-tooltip="Basic sortable grid">
+          <span class="icon">📊</span>
+          <span>Simple Table</span>
+        </button>
+        <button class="preset-btn" onclick="applyPreset('filterable')" data-tooltip="With search and filters">
+          <span class="icon">🔍</span>
+          <span>Filterable Grid</span>
+        </button>
+        <button class="preset-btn" onclick="applyPreset('editable')" data-tooltip="Inline editing enabled">
+          <span class="icon">✏️</span>
+          <span>Editable Data</span>
+        </button>
+        <button class="preset-btn" onclick="applyPreset('export')" data-tooltip="CSV and Markdown export">
+          <span class="icon">📤</span>
+          <span>Export</span>
+        </button>
+        <button class="preset-btn" onclick="applyPreset('grouping')" data-tooltip="Row grouping enabled">
+          <span class="icon">📁</span>
+          <span>Grouping</span>
+        </button>
+        <button class="preset-btn" onclick="applyPreset('pivot')" data-tooltip="Pivot mode and charting">
+          <span class="icon">📈</span>
+          <span>Pivot & Chart</span>
+        </button>
+        <button class="preset-btn" onclick="applyPreset('dark')" data-tooltip="Dark theme, compact">
+          <span class="icon">🌙</span>
+          <span>Dark Compact</span>
+        </button>
+        <button class="preset-btn" onclick="applyPreset('fullFeatured')" data-tooltip="All features, pivot, chart, dark">
+          <span class="icon">🚀</span>
+          <span>Full Featured</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Layout -->
+    <div class="main-layout">
+      <!-- Configuration Panel -->
+      <aside class="config-panel">
+        <div class="config-header">
+          <h2>⚙️ Configuration</h2>
+          <p>Customize every aspect of your grid</p>
+        </div>
+
+        <!-- Basic Settings -->
+        <div class="config-section" id="section-basic">
+          <button class="section-toggle" onclick="toggleSection('basic')">
+            <span><span class="icon">📋</span> Basic Settings</span>
+            <span class="chevron">▼</span>
+          </button>
+          <div class="section-content">
+            <div class="form-group">
+              <label>
+                Grid ID
+                <span class="help" data-tooltip="CSS selector for your grid container">ℹ️</span>
+              </label>
+              <input type="text" id="gridId" value="my-grid" placeholder="my-grid" />
+            </div>
+            <div class="form-group">
+              <label>Theme</label>
+              <select id="theme">
+                <option value="">Light (Default)</option>
+                <option value="dark-blue">Dark Blue</option>
+                <option value="dark-grey">Dark Grey</option>
+                <option value="midnight">Midnight</option>
+                <option value="forest">Forest</option>
+                <option value="ocean">Ocean</option>
+                <option value="sand">Sand</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Density</label>
+              <select id="density">
+                <option value="comfortable">Comfortable (Default)</option>
+                <option value="compact">Compact</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Features -->
+        <div class="config-section" id="section-features">
+          <button class="section-toggle" onclick="toggleSection('features')">
+            <span><span class="icon">✨</span> Features</span>
+            <span class="chevron">▼</span>
+          </button>
+          <div class="section-content">
+            <div class="checkbox-grid">
+              <label class="checkbox-item" onclick="toggleCheckbox(this)">
+                <input type="checkbox" id="sortable" checked />
+                <span class="check-icon">✓</span>
+                <span class="label-text">Sorting</span>
+              </label>
+              <label class="checkbox-item" onclick="toggleCheckbox(this)">
+                <input type="checkbox" id="filterable" />
+                <span class="check-icon">✓</span>
+                <span class="label-text">Filtering</span>
+              </label>
+              <label class="checkbox-item" onclick="toggleCheckbox(this)">
+                <input type="checkbox" id="pagination" checked />
+                <span class="check-icon">✓</span>
+                <span class="label-text">Pagination</span>
+              </label>
+              <label class="checkbox-item" onclick="toggleCheckbox(this)">
+                <input type="checkbox" id="columnsMenu" />
+                <span class="check-icon">✓</span>
+                <span class="label-text">Column Menu</span>
+              </label>
+              <label class="checkbox-item" onclick="toggleCheckbox(this)">
+                <input type="checkbox" id="groupable" />
+                <span class="check-icon">✓</span>
+                <span class="label-text">Grouping</span>
+              </label>
+              <label class="checkbox-item" onclick="toggleCheckbox(this)">
+                <input type="checkbox" id="selection" />
+                <span class="check-icon">✓</span>
+                <span class="label-text">Row Selection</span>
+              </label>
+              <label class="checkbox-item" onclick="toggleCheckbox(this)">
+                <input type="checkbox" id="resizableColumns" />
+                <span class="check-icon">✓</span>
+                <span class="label-text">Resize Columns</span>
+              </label>
+              <label class="checkbox-item" onclick="toggleCheckbox(this)">
+                <input type="checkbox" id="headerPivotButton" />
+                <span class="check-icon">✓</span>
+                <span class="label-text">Header Pivot Button</span>
+              </label>
+              <label class="checkbox-item" onclick="toggleCheckbox(this)">
+                <input type="checkbox" id="editableRows" />
+                <span class="check-icon">✓</span>
+                <span class="label-text">Editable Rows</span>
+              </label>
+              <label class="checkbox-item" onclick="toggleCheckbox(this)">
+                <input type="checkbox" id="exporting" />
+                <span class="check-icon">✓</span>
+                <span class="label-text">Export CSV/MD</span>
+              </label>
+              <label class="checkbox-item" onclick="toggleCheckbox(this)">
+                <input type="checkbox" id="contextMenu" checked />
+                <span class="check-icon">✓</span>
+                <span class="label-text">Context Menu</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pagination Options -->
+        <div class="config-section" id="section-pagination">
+          <button class="section-toggle" onclick="toggleSection('pagination')">
+            <span><span class="icon">📄</span> Pagination</span>
+            <span class="chevron">▼</span>
+          </button>
+          <div class="section-content">
+            <div class="form-group">
+              <label>Default Page Size</label>
+              <input type="number" id="pageSize" value="10" min="5" max="100" />
+            </div>
+            <div class="form-group">
+              <label>
+                Page Size Options
+                <span class="help" data-tooltip="Comma-separated numbers">ℹ️</span>
+              </label>
+              <input type="text" id="pageSizes" value="10, 25, 50, 100" placeholder="10, 25, 50, 100" />
+              <div id="pageSizesError" class="error-message" style="display:none;">Enter comma-separated positive numbers</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Style Options -->
+        <div class="config-section" id="section-style">
+          <button class="section-toggle" onclick="toggleSection('style')">
+            <span><span class="icon">🎨</span> Style Options</span>
+            <span class="chevron">▼</span>
+          </button>
+          <div class="section-content">
+            <div class="checkbox-grid">
+              <label class="checkbox-item" onclick="toggleCheckbox(this)">
+                <input type="checkbox" id="striped" />
+                <span class="check-icon">✓</span>
+                <span class="label-text">Striped Rows</span>
+              </label>
+              <label class="checkbox-item" onclick="toggleCheckbox(this)">
+                <input type="checkbox" id="enableSettings" />
+                <span class="check-icon">✓</span>
+                <span class="label-text">Settings Button</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Plugins -->
+        <div class="config-section collapsed" id="section-plugins">
+          <button class="section-toggle" onclick="toggleSection('plugins')">
+            <span><span class="icon">🔌</span> Plugins</span>
+            <span class="chevron">▼</span>
+          </button>
+          <div class="section-content">
+            <div class="form-group">
+              <label>Enable Pivot (D3)</label>
+              <label class="checkbox-item checkbox-single" style="display:flex;align-items:center;gap:10px;">
+                <input type="checkbox" id="pivotD3" />
+                <span class="label-text">Enable Pivot plugin and charting</span>
+              </label>
+            </div>
+
+            <div id="pivotChartOptions" style="display:none;">
+              <div class="form-group">
+                <label>Chart Type</label>
+                <select id="pivotChartType">
+                  <option value="grouped">Grouped Bars</option>
+                  <option value="stacked">Stacked Bars</option>
+                  <option value="line">Line</option>
+                  <option value="pie">Pie / Donut</option>
+                </select>
+              </div>
+
+              <div class="checkbox-grid">
+                <label class="checkbox-item" onclick="toggleCheckbox(this)">
+                  <input type="checkbox" id="pivotChartNormalize" />
+                  <span class="check-icon">✓</span>
+                  <span class="label-text">Normalize (%)</span>
+                </label>
+                <label class="checkbox-item" onclick="toggleCheckbox(this)">
+                  <input type="checkbox" id="pivotChartShowLegend" checked />
+                  <span class="check-icon">✓</span>
+                  <span class="label-text">Show Legend</span>
+                </label>
+                <label class="checkbox-item" onclick="toggleCheckbox(this)">
+                  <input type="checkbox" id="pivotChartAutorender" />
+                  <span class="check-icon">✓</span>
+                  <span class="label-text">Auto-render on pivot change</span>
+                </label>
+              </div>
+            </div>
+
+            <p style="font-size: 12px; color: var(--text-secondary); margin: 8px 0 0;">Additional plugins will include required scripts automatically.</p>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+          <button class="btn btn-primary" onclick="updatePreview()">
+            <span>🔄</span> Update Preview
+          </button>
+          <button class="btn btn-secondary" onclick="resetConfig()">
+            <span>↺</span> Reset
+          </button>
+        </div>
+      </aside>
+
+      <!-- Preview & Code Area -->
+      <main>
+        <!-- Live Preview -->
+        <div class="preview-panel">
+          <div class="panel-header">
+            <h3><span>👁️</span> Live Preview</h3>
+            <span class="status" id="previewStatus">Ready</span>
+          </div>
+          <div class="preview-container">
+            <div id="preview-grid"></div>
+          </div>
+        </div>
+
+        <!-- Generated Code -->
+        <div class="code-panel">
+          <div class="code-header">
+            <h3><span>💻</span> Generated Code</h3>
+            <div class="code-actions">
+              <button class="code-btn" onclick="copyCode()" id="copyBtn" data-tooltip="Copy to clipboard">
+                <span>📋</span> Copy
+              </button>
+              <button class="code-btn" onclick="downloadCode()" data-tooltip="Download as HTML file">
+                <span>💾</span> Download
+              </button>
+              <button class="code-btn" onclick="openInNewTab()" id="openBtn" data-tooltip="Open in new tab">
+                <span>↗️</span> Open
+              </button>
+            </div>
+          </div>
+
+          <div class="tabs" role="tablist">
+            <button class="tab active" onclick="switchTab('html', this)">HTML</button>
+            <button class="tab" onclick="switchTab('javascript', this)">JavaScript</button>
+            <button class="tab" onclick="switchTab('complete', this)">Complete File</button>
+          </div>
+
+          <div class="tab-content active" id="html-tab">
+            <div class="code-container">
+              <pre id="html-code"></pre>
+            </div>
+          </div>
+
+          <div class="tab-content" id="javascript-tab">
+            <div class="code-container">
+              <pre id="js-code"></pre>
+            </div>
+          </div>
+
+          <div class="tab-content" id="complete-tab">
+            <div class="code-container">
+              <pre id="complete-code"></pre>
+            </div>
+          </div>
+
+          <div style="padding: 12px 20px; background: var(--bg-light); border-top: 1px solid var(--border); font-size: 12px; color: var(--text-secondary);">
+            <span id="assetStatus">Assets: detecting...</span>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast">
+    <span class="toast-icon">✓</span>
+    <span class="toast-message">Copied to clipboard!</span>
+  </div>
+
+  <script>
+    // =====================================================
+    // Sample Data
+    // =====================================================
+    const sampleData = [
+      { id: 1, name: 'MacBook Pro 16"', category: 'Electronics', price: 2499.99, stock: 45, status: 'In Stock' },
+      { id: 2, name: 'Nike Air Max', category: 'Clothing', price: 149.99, stock: 120, status: 'In Stock' },
+      { id: 3, name: 'The Great Gatsby', category: 'Books', price: 12.99, stock: 8, status: 'Low Stock' },
+      { id: 4, name: 'Sony WH-1000XM5', category: 'Electronics', price: 399.99, stock: 0, status: 'Out of Stock' },
+      { id: 5, name: 'IKEA Desk Lamp', category: 'Home', price: 29.99, stock: 35, status: 'In Stock' },
+      { id: 6, name: 'Wilson Tennis Racket', category: 'Sports', price: 189.99, stock: 22, status: 'In Stock' },
+      { id: 7, name: 'iPad Pro 12.9"', category: 'Electronics', price: 1099.99, stock: 15, status: 'In Stock' },
+      { id: 8, name: 'Levi\'s 501 Jeans', category: 'Clothing', price: 79.99, stock: 5, status: 'Low Stock' },
+      { id: 9, name: '1984 by Orwell', category: 'Books', price: 9.99, stock: 50, status: 'In Stock' },
+      { id: 10, name: 'Dyson V15 Vacuum', category: 'Home', price: 749.99, stock: 12, status: 'In Stock' },
+      { id: 11, name: 'Yoga Mat Premium', category: 'Sports', price: 45.99, stock: 30, status: 'In Stock' },
+      { id: 12, name: 'Samsung 4K TV 65"', category: 'Electronics', price: 1299.99, stock: 3, status: 'Low Stock' },
+      { id: 13, name: 'Adidas Hoodie', category: 'Clothing', price: 65.99, stock: 75, status: 'In Stock' },
+      { id: 14, name: 'Atomic Habits', category: 'Books', price: 16.99, stock: 0, status: 'Out of Stock' },
+      { id: 15, name: 'KitchenAid Mixer', category: 'Home', price: 449.99, stock: 18, status: 'In Stock' }
+    ];
+
+    let currentGrid = null;
+
+    // =====================================================
+    // Presets
+    // =====================================================
+    const presets = {
+      minimal: {
+        sortable: false, filterable: false, pagination: false, columnsMenu: false,
+        groupable: false, selection: false, resizableColumns: false, editableRows: false,
+        exporting: false, contextMenu: false, striped: false, enableSettings: false,
+        pivotD3: false, headerPivotButton: false, theme: '', density: 'comfortable', pageSize: 10, pageSizes: '10, 25, 50'
+      },
+      simple: {
+        sortable: true, filterable: false, pagination: true, columnsMenu: false,
+        groupable: false, selection: false, resizableColumns: false, editableRows: false,
+        exporting: false, contextMenu: false, striped: false, enableSettings: false,
+        pivotD3: false, headerPivotButton: true, theme: '', density: 'comfortable', pageSize: 10, pageSizes: '10, 25, 50'
+      },
+      filterable: {
+        sortable: true, filterable: true, pagination: true, columnsMenu: true,
+        groupable: false, selection: false, resizableColumns: false, editableRows: false,
+        exporting: false, contextMenu: true, striped: false, enableSettings: true,
+        pivotD3: false, headerPivotButton: true, theme: '', density: 'comfortable', pageSize: 10, pageSizes: '10, 25, 50, 100'
+      },
+      editable: {
+        sortable: true, filterable: true, pagination: true, columnsMenu: true,
+        groupable: false, selection: true, resizableColumns: true, editableRows: true,
+        exporting: false, contextMenu: true, striped: false, enableSettings: true,
+        pivotD3: false, headerPivotButton: true, theme: '', density: 'comfortable', pageSize: 10, pageSizes: '10, 25, 50'
+      },
+      export: {
+        sortable: true, filterable: true, pagination: true, columnsMenu: true,
+        groupable: false, selection: true, resizableColumns: false, editableRows: false,
+        exporting: true, contextMenu: true, striped: true, enableSettings: true,
+        pivotD3: false, headerPivotButton: true, theme: '', density: 'comfortable', pageSize: 25, pageSizes: '10, 25, 50, 100'
+      },
+      grouping: {
+        sortable: true, filterable: true, pagination: true, columnsMenu: true,
+        groupable: true, selection: false, resizableColumns: true, editableRows: false,
+        exporting: true, contextMenu: true, striped: false, enableSettings: true,
+        pivotD3: false, headerPivotButton: true, theme: '', density: 'comfortable', pageSize: 25, pageSizes: '10, 25, 50'
+      },
+      pivot: {
+        sortable: true, filterable: true, pagination: true, columnsMenu: true,
+        groupable: true, selection: true, resizableColumns: true, editableRows: false,
+        exporting: true, contextMenu: true, striped: true, enableSettings: true,
+        pivotD3: true, headerPivotButton: true, theme: '', density: 'comfortable', pageSize: 25, pageSizes: '10, 25, 50',
+        pivotChartType: 'grouped', pivotChartShowLegend: true, pivotChartAutorender: true
+      },
+      dark: {
+        sortable: true, filterable: true, pagination: true, columnsMenu: true,
+        groupable: false, selection: false, resizableColumns: true, editableRows: false,
+        exporting: false, contextMenu: true, striped: true, enableSettings: true,
+        pivotD3: false, headerPivotButton: true, theme: 'dark-blue', density: 'compact', pageSize: 10, pageSizes: '10, 25, 50'
+      },
+      fullFeatured: {
+        sortable: true, filterable: true, pagination: true, columnsMenu: true,
+        groupable: true, selection: true, resizableColumns: true, editableRows: true,
+        exporting: true, contextMenu: true, striped: true, enableSettings: true,
+        pivotD3: true, headerPivotButton: true, theme: 'dark-blue', density: 'comfortable', pageSize: 10, pageSizes: '10, 25, 50, 100',
+        pivotChartType: 'grouped', pivotChartShowLegend: true, pivotChartAutorender: true
+      }
+    };
+
+    function applyPreset(name) {
+      const preset = presets[name];
+      if (!preset) return;
+
+      // Update UI
+      document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.closest('.preset-btn').classList.add('active');
+
+      // Apply values
+      Object.keys(preset).forEach(key => {
+        const el = document.getElementById(key);
+        if (!el) return;
+        if (el.type === 'checkbox') {
+          el.checked = preset[key];
+          updateCheckboxUI(el);
+        } else {
+          el.value = preset[key];
+        }
+      });
+
+      updatePreview();
+    }
+
+    // =====================================================
+    // UI Helpers
+    // =====================================================
+    function toggleSection(name) {
+      const section = document.getElementById('section-' + name);
+      section.classList.toggle('collapsed');
+    }
+
+    function toggleCheckbox(label) {
+      const input = label.querySelector('input');
+      input.checked = !input.checked;
+      updateCheckboxUI(input);
+      debouncedUpdate();
+    }
+
+    function updateCheckboxUI(input) {
+      const label = input.closest('.checkbox-item');
+      if (input.checked) {
+        label.classList.add('checked');
+      } else {
+        label.classList.remove('checked');
+      }
+    }
+
+    function showToast(message, type) {
+      type = type || 'success';
+      const toast = document.getElementById('toast');
+      toast.querySelector('.toast-message').textContent = message;
+      toast.className = 'toast show ' + type;
+      setTimeout(function() { toast.classList.remove('show'); }, 3000);
+    }
+
+    // =====================================================
+    // Configuration
+    // =====================================================
+    function getConfig() {
+      return {
+        gridId: document.getElementById('gridId').value || 'my-grid',
+        pageSize: parseInt(document.getElementById('pageSize').value) || 10,
+        theme: document.getElementById('theme').value,
+        filterable: document.getElementById('filterable').checked,
+        sortable: document.getElementById('sortable').checked,
+        groupable: document.getElementById('groupable').checked,
+        exporting: document.getElementById('exporting').checked,
+        columnsMenu: document.getElementById('columnsMenu').checked,
+        selection: document.getElementById('selection').checked,
+        striped: document.getElementById('striped').checked,
+        density: document.getElementById('density').value,
+        enableSettings: document.getElementById('enableSettings').checked,
+        pagination: document.getElementById('pagination').checked,
+        pageSizes: document.getElementById('pageSizes').value,
+        resizableColumns: document.getElementById('resizableColumns').checked,
+        editableRows: document.getElementById('editableRows').checked,
+        contextMenu: document.getElementById('contextMenu').checked,
+        pivotD3: document.getElementById('pivotD3') ? document.getElementById('pivotD3').checked : false,
+        headerPivotButton: document.getElementById('headerPivotButton') ? document.getElementById('headerPivotButton').checked : true,
+        pivotChartType: document.getElementById('pivotChartType') ? document.getElementById('pivotChartType').value : 'grouped',
+        pivotChartNormalize: document.getElementById('pivotChartNormalize') ? document.getElementById('pivotChartNormalize').checked : false,
+        pivotChartShowLegend: document.getElementById('pivotChartShowLegend') ? document.getElementById('pivotChartShowLegend').checked : true,
+        pivotChartAutorender: document.getElementById('pivotChartAutorender') ? document.getElementById('pivotChartAutorender').checked : false
+      };
+    }
+
+    // =====================================================
+    // Code Generation
+    // =====================================================
+    function generateHTMLCode(config) {
+      return '<!-- VanillaGrid Container -->\n<div id="' + config.gridId + '"></div>';
+    }
+
+    function generateJSCode(config) {
+      var indent = '  ';
+      var code = '// Sample data - replace with your own data source\n';
+      code += 'const data = [\n';
+      code += indent + '{ id: 1, name: \'Product A\', category: \'Electronics\', price: 299.99, stock: 45 },\n';
+      code += indent + '{ id: 2, name: \'Product B\', category: \'Clothing\', price: 49.99, stock: 120 },\n';
+      code += indent + '// ... add more data\n';
+      code += '];\n\n';
+      code += '// Initialize VanillaGrid\n';
+      code += 'const grid = new VanillaGrid(\'#' + config.gridId + '\', {\n';
+      code += indent + 'data: data,\n';
+      code += indent + 'columns: [\n';
+      code += indent + indent + '{ key: \'id\', label: \'ID\', type: \'number\', width: 80 },\n';
+      code += indent + indent + '{ key: \'name\', label: \'Name\', width: 200 },\n';
+      code += indent + indent + '{ key: \'category\', label: \'Category\', width: 150 },\n';
+      code += indent + indent + '{ \n';
+      code += indent + indent + indent + 'key: \'price\', \n';
+      code += indent + indent + indent + 'label: \'Price\', \n';
+      code += indent + indent + indent + 'type: \'number\',\n';
+      code += indent + indent + indent + 'formatter: (val) => \'$\' + val.toFixed(2)\n';
+      code += indent + indent + '},\n';
+      code += indent + indent + '{ key: \'stock\', label: \'Stock\', type: \'number\', width: 100 }\n';
+      code += indent + ']';
+
+      // Add options
+      if (config.sortable) code += ',\n' + indent + 'sortable: true';
+      if (config.filterable) code += ',\n' + indent + 'filterable: true';
+      if (config.groupable) code += ',\n' + indent + 'groupable: true';
+      if (config.selection) code += ',\n' + indent + 'selection: { enabled: true }';
+      
+      code += ',\n' + indent + 'pageSize: ' + config.pageSize;
+
+      if (config.theme) code += ',\n' + indent + 'theme: \'' + config.theme + '\'';
+      if (config.density !== 'comfortable') code += ',\n' + indent + 'density: \'' + config.density + '\'';
+      if (config.striped) code += ',\n' + indent + 'striped: true';
+      
+      if (config.columnsMenu) {
+        code += ',\n' + indent + 'columnsMenu: { location: \'pager\', showSearch: true, showSelectAll: true }';
+      }
+      
+      if (config.exporting) {
+        code += ',\n' + indent + 'exporting: { enabled: true, formats: [\'csv\', \'md\'] }';
+      }
+
+      if (!config.pagination) {
+        code += ',\n' + indent + 'pagination: false';
+      } else if (config.pageSizes) {
+        var sizes = parsePageSizes(config.pageSizes);
+        if (sizes.length) {
+          code += ',\n' + indent + 'pageSizes: [' + sizes.join(', ') + ']';
+        }
+      }
+
+      if (config.resizableColumns) code += ',\n' + indent + 'resizableColumns: true';
+      if (config.editableRows) code += ',\n' + indent + 'editableRows: true';
+      if (!config.contextMenu) code += ',\n' + indent + 'contextMenu: false';
+
+      // Header pivot button option
+      if (typeof config.headerPivotButton !== 'undefined') {
+        code += ',\n' + indent + 'showHeaderPivotButton: ' + (config.headerPivotButton ? 'true' : 'false');
+      }
+
+      if (config.enableSettings) {
+        code += ',\n' + indent + 'styleControls: true';
+      } else {
+        code += ',\n' + indent + 'styleControls: false';
+      }
+      
+      code += '\n});';
+      
+      if (config.pivotD3) {
+        code += '\n\n// Pivot: enable pivot mode and optional charting (requires vg-pivot-d3.js)\n';
+        code += "grid.enablePivot({\n" +
+                "  rows: [],\n" +
+                "  columns: [],\n" +
+                "  values: [],\n" +
+                "  aggregations: {}\n" +
+                "});\n";
+        // attach chart config if requested
+        var chartCfg = {};
+        if (config.pivotChartType) chartCfg.type = config.pivotChartType;
+        if (config.pivotChartNormalize) chartCfg.normalize = true;
+        if (typeof config.pivotChartShowLegend !== 'undefined') chartCfg.showLegend = !!config.pivotChartShowLegend;
+        if (config.pivotChartAutorender) chartCfg.autorender = true;
+        if (Object.keys(chartCfg).length) {
+          code += '\n// Configure pivot chart\n';
+          code += 'grid.updatePivotConfig({ chart: ' + JSON.stringify(chartCfg) + ' });\n';
+        }
+      }
+      
+      return code;
+    }
+
+    function parsePageSizes(input) {
+      if (!input) return [];
+      return input.split(',')
+        .map(function(s) { return parseInt(s.trim(), 10); })
+        .filter(function(n) { return Number.isFinite(n) && n > 0; });
+    }
+
+    function buildAssetUrls() {
+      var isLocal = location.protocol !== 'file:' && location.origin;
+      var cdnBase = 'https://cdn.jsdelivr.net/gh/simonwaldherr/vanillagrid.js@main';
+      
+      return {
+        cssUrl: isLocal ? location.origin + '/dist/vanillagrid.min.css' : cdnBase + '/dist/vanillagrid.min.css',
+        jsUrl: isLocal ? location.origin + '/dist/vanillagrid.min.js' : cdnBase + '/dist/vanillagrid.min.js',
+        pivotCssUrl: isLocal ? location.origin + '/dist/vg-pivot-d3.min.css' : cdnBase + '/dist/vg-pivot-d3.min.css',
+        pivotJsUrl: isLocal ? location.origin + '/dist/vg-pivot-d3.min.js' : cdnBase + '/dist/vg-pivot-d3.min.js'
+      };
+    }
+
+    function escapeScriptContent(s) {
+      return s.replace(/<\/script>/gi, '<\\/script>');
+    }
+
+    function generateCompleteCode(config) {
+      var urls = buildAssetUrls();
+      var jsCode = escapeScriptContent(generateJSCode(config));
+      
+      var html = '<!DOCTYPE html>\n';
+      html += '<html lang="en">\n';
+      html += '<head>\n';
+      html += '  <meta charset="UTF-8">\n';
+      html += '  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n';
+      html += '  <title>VanillaGrid Example</title>\n';
+      html += '  \n';
+      html += '  <!-- VanillaGrid CSS -->\n';
+      html += '  <link rel="stylesheet" href="' + urls.cssUrl + '">';
+
+      if (config.pivotD3) {
+        html += '\n  <link rel="stylesheet" href="' + urls.pivotCssUrl + '">';
+      }
+
+      html += '\n</head>\n';
+      html += '<body>\n';
+      html += '  ' + generateHTMLCode(config).replace(/\n/g, '\n  ') + '\n';
+      html += '  \n';
+      html += '  <!-- VanillaGrid JS -->\n';
+      html += '  <scr' + 'ipt src="' + urls.jsUrl + '"></scr' + 'ipt>';
+
+      if (config.pivotD3) {
+        html += '\n  <scr' + 'ipt src="' + urls.pivotJsUrl + '"></scr' + 'ipt>';
+      }
+
+      html += '\n  \n';
+      html += '  <scr' + 'ipt>\n';
+      html += '    ' + jsCode.split('\n').join('\n    ') + '\n';
+      html += '  </scr' + 'ipt>\n';
+      html += '</body>\n';
+      html += '</html>';
+
+      return html;
+    }
+
+    // =====================================================
+    // Preview & Update
+    // =====================================================
+    async function updateCode() {
+      var config = getConfig();
+      
+      // Validate page sizes
+      var sizes = parsePageSizes(config.pageSizes);
+      var pageSizesErr = document.getElementById('pageSizesError');
+      if (config.pagination && config.pageSizes && sizes.length === 0) {
+        pageSizesErr.style.display = 'block';
+      } else {
+        pageSizesErr.style.display = 'none';
+      }
+
+      // Update code displays
+      document.getElementById('html-code').textContent = generateHTMLCode(config);
+      document.getElementById('js-code').textContent = generateJSCode(config);
+      document.getElementById('complete-code').textContent = generateCompleteCode(config);
+
+      // Update asset status
+      var isLocal = location.protocol !== 'file:';
+      document.getElementById('assetStatus').textContent = isLocal 
+        ? 'Assets: using local /dist/ files' 
+        : 'Assets: using CDN (jsdelivr)';
+
+      return generateCompleteCode(config);
+    }
+
+    async function updatePreview() {
+      var config = getConfig();
+      var container = document.getElementById('preview-grid');
+      var status = document.getElementById('previewStatus');
+      
+      status.textContent = 'Loading...';
+      container.innerHTML = '';
+
+      // Build grid config
+      var gridConfig = {
+        data: sampleData,
+        columns: [
+          { key: 'id', label: 'ID', type: 'number', sortable: config.sortable, width: 60 },
+          { key: 'name', label: 'Product Name', sortable: config.sortable, width: 180 },
+          { key: 'category', label: 'Category', sortable: config.sortable, width: 120 },
+          { 
+            key: 'price', 
+            label: 'Price', 
+            type: 'number', 
+            sortable: config.sortable,
+            width: 100,
+            formatter: function(val) { return '$' + val.toFixed(2); }
+          },
+          { key: 'stock', label: 'Stock', type: 'number', sortable: config.sortable, width: 80 },
+          {
+            key: 'status',
+            label: 'Status',
+            width: 120,
+            render: function(value) {
+              var colors = {
+                'In Stock': '#10b981',
+                'Low Stock': '#f59e0b',
+                'Out of Stock': '#ef4444'
+              };
+              return '<span style="padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; background: ' + colors[value] + '20; color: ' + colors[value] + '">' + value + '</span>';
+            }
+          }
+        ],
+        pageSize: config.pageSize
+      };
+
+      // Apply options
+      if (config.theme) gridConfig.theme = config.theme;
+      if (config.density !== 'comfortable') gridConfig.density = config.density;
+      if (config.striped) gridConfig.striped = true;
+      if (config.filterable) gridConfig.filterable = true;
+      if (config.groupable) gridConfig.groupable = true;
+      if (config.selection) gridConfig.selection = { enabled: true };
+      if (config.columnsMenu) gridConfig.columnsMenu = { location: 'pager', showSearch: true, showSelectAll: true };
+      if (config.exporting) gridConfig.exporting = { enabled: true, formats: ['csv', 'md'] };
+      if (config.resizableColumns) gridConfig.resizableColumns = true;
+      if (config.editableRows) gridConfig.editableRows = true;
+      if (!config.contextMenu) gridConfig.contextMenu = false;
+      if (config.enableSettings) gridConfig.styleControls = true;
+      else gridConfig.styleControls = false;
+      // show/hide header pivot button
+      if (typeof config.headerPivotButton !== 'undefined') {
+        gridConfig.showHeaderPivotButton = !!config.headerPivotButton;
+      }
+      
+      gridConfig.pagination = !!config.pagination;
+      if (config.pageSizes) {
+        var sizes = parsePageSizes(config.pageSizes);
+        if (sizes.length) gridConfig.pageSizes = sizes;
+      }
+
+      // Destroy previous grid
+      try {
+        if (currentGrid && currentGrid.destroy) currentGrid.destroy();
+        else if (currentGrid && currentGrid.dispose) currentGrid.dispose();
+      } catch (e) { /* ignore */ }
+
+      // Create new grid
+      try {
+        if (config.pivotD3) {
+          await ensurePivotAssetsLoaded();
+        }
+        currentGrid = new VanillaGrid(container, gridConfig);
+        // If pivot + charts requested, enable pivot and apply chart config for preview
+        if (config.pivotD3 && currentGrid && currentGrid.enablePivot) {
+          try {
+            currentGrid.enablePivot({ rows: [], columns: [], values: [], aggregations: {} });
+            currentGrid.updatePivotConfig({ chart: {
+              type: config.pivotChartType || 'grouped',
+              normalize: !!config.pivotChartNormalize,
+              showLegend: !!config.pivotChartShowLegend,
+              autorender: !!config.pivotChartAutorender
+            }});
+          } catch (e) { /* preview best-effort */ }
+        }
+        status.textContent = 'Ready';
+      } catch (err) {
+        console.error('Grid error:', err);
+        status.textContent = 'Error';
+        container.innerHTML = '<div style="padding: 40px; text-align: center; color: #ef4444;">' +
+          '<p>⚠️ Failed to create grid</p>' +
+          '<p style="font-size: 12px; color: #6b7280;">' + err.message + '</p>' +
+        '</div>';
+      }
+
+      await updateCode();
+    }
+
+    // =====================================================
+    // Actions
+    // =====================================================
+    function copyCode() {
+      var activeTab = document.querySelector('.tab-content.active pre');
+      var code = activeTab.textContent;
+      
+      navigator.clipboard.writeText(code).then(function() {
+        var btn = document.getElementById('copyBtn');
+        btn.classList.add('success');
+        btn.innerHTML = '<span>✓</span> Copied!';
+        showToast('Code copied to clipboard!');
+        
+        setTimeout(function() {
+          btn.classList.remove('success');
+          btn.innerHTML = '<span>📋</span> Copy';
+        }, 2000);
+      });
+    }
+
+    function downloadCode() {
+      var config = getConfig();
+      var html = generateCompleteCode(config);
+      var blob = new Blob([html], { type: 'text/html' });
+      var url = URL.createObjectURL(blob);
+      
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'vanillagrid-' + config.gridId + '.html';
+      a.click();
+      
+      URL.revokeObjectURL(url);
+      showToast('File downloaded!');
+    }
+
+    async function openInNewTab() {
+      var btn = document.getElementById('openBtn');
+      btn.innerHTML = '<span>⌛</span> Opening...';
+      btn.disabled = true;
+
+      try {
+        var html = await updateCode();
+        var blob = new Blob([html], { type: 'text/html' });
+        var url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        setTimeout(function() { URL.revokeObjectURL(url); }, 5000);
+      } finally {
+        btn.innerHTML = '<span>↗️</span> Open';
+        btn.disabled = false;
+      }
+    }
+
+    function resetConfig() {
+      applyPreset('simple');
+      document.querySelectorAll('.preset-btn').forEach(function(btn) { btn.classList.remove('active'); });
+      document.querySelector('.preset-btn').classList.add('active');
+      showToast('Configuration reset');
+    }
+
+    function switchTab(tabName, el) {
+      document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+      document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+      el.classList.add('active');
+      document.getElementById(tabName + '-tab').classList.add('active');
+    }
+
+    // =====================================================
+    // Plugin Loading
+    // =====================================================
+    function injectCss(url) {
+      if (document.querySelector('link[href="' + url + '"]')) return;
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = url;
+      document.head.appendChild(link);
+    }
+
+    function injectScript(url) {
+      return new Promise(function(resolve, reject) {
+        var scripts = Array.from(document.scripts);
+        for (var i = 0; i < scripts.length; i++) {
+          if (scripts[i].src && scripts[i].src.indexOf(url) !== -1) return resolve();
+        }
+        var s = document.createElement('script');
+        s.src = url;
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
+
+    async function ensurePivotAssetsLoaded() {
+      var urls = buildAssetUrls();
+      try {
+        injectCss(urls.pivotCssUrl);
+        await injectScript(urls.pivotJsUrl);
+      } catch (e) {
+        console.warn('Failed to load pivot assets:', e);
+      }
+    }
+
+    // =====================================================
+    // Debounce & Init
+    // =====================================================
+    function debounce(fn, wait) {
+      wait = wait || 200;
+      var t = null;
+      return function() {
+        var args = arguments;
+        var self = this;
+        clearTimeout(t);
+        t = setTimeout(function() { fn.apply(self, args); }, wait);
+      };
+    }
+
+    var debouncedUpdate = debounce(updatePreview, 250);
+
+    // Initialize
+    (function init() {
+      // Wire up all inputs
+      document.querySelectorAll('input, select').forEach(function(el) {
+        if (el.type === 'checkbox') {
+          updateCheckboxUI(el);
+        }
+        el.addEventListener('change', debouncedUpdate);
+        el.addEventListener('input', debouncedUpdate);
+      });
+
+      // Handle pagination toggle
+      var paginationEl = document.getElementById('pagination');
+      var pageSizeEl = document.getElementById('pageSize');
+      var pageSizesEl = document.getElementById('pageSizes');
+      
+      paginationEl.addEventListener('change', function() {
+        pageSizeEl.disabled = !paginationEl.checked;
+        pageSizesEl.disabled = !paginationEl.checked;
+      });
+
+      // Handle pivot plugin options visibility
+      var pivotEl = document.getElementById('pivotD3');
+      var pivotOpts = document.getElementById('pivotChartOptions');
+      if (pivotEl) {
+        pivotEl.addEventListener('change', function() {
+          if (pivotOpts) pivotOpts.style.display = this.checked ? 'block' : 'none';
+        });
+        // initialize visibility
+        if (pivotOpts) pivotOpts.style.display = pivotEl.checked ? 'block' : 'none';
+      }
+
+      // Initial preview
+      updatePreview();
+    })();
+  </script>
+</body>
+</html>
