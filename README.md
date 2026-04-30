@@ -39,6 +39,18 @@ Outputs to `dist/`:
 - `dist/vg-pivot-d3.min.js` - Pivot chart plugin
 - `dist/vg-pivot-d3.min.css` - Pivot chart styles
 
+## CI / GitHub Pages
+
+On every push to `main` (and via manual `workflow_dispatch`), GitHub Actions now:
+
+1. installs dependencies with `npm ci`
+2. builds `dist/` with `npm run build`
+3. uploads `dist/` as a workflow artifact (`vanillagrid-dist`)
+4. prepares a Pages bundle with the demos + built assets
+5. publishes that bundle to the `gh-pages` branch
+
+The published Pages root uses `demo.html` as `index.html`, so the demo site opens directly from GitHub Pages.
+
 ## Installation
 
 ### Browser (UMD)
