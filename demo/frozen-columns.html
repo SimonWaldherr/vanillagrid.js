@@ -107,7 +107,11 @@
     });
 
     function seedFor(productIdx, monthIdx) {
-      // Stable pseudo-random based on indexes (no Math.random so each render is identical)
+      // Deterministic pseudo-random in the range ~$2k–$20k. The two prime-ish
+      // multipliers (12.345, 7.89) just decorrelate the two indexes so each
+      // (product, month) cell looks different; sin()*10000 is a common trick
+      // to spread the value across [0,1) without needing Math.random, so the
+      // grid renders identically on every reload.
       const x = Math.sin((productIdx + 1) * 12.345 + (monthIdx + 1) * 7.89) * 10000;
       const fraction = x - Math.floor(x);
       return Math.round(2000 + fraction * 18000);
