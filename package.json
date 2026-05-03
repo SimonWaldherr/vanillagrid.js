@@ -53,7 +53,7 @@
     "node": ">=18"
   },
   "scripts": {
-    "start": "node scripts/serve.js",
+    "start": "npm run build && node scripts/serve.js",
     "build": "npm run clean && npm run rollup && npm run minify-css && npm run minify-pivot",
     "clean": "rm -rf dist && mkdir -p dist",
     "rollup": "rollup -c rollup.config.mjs",
