@@ -47,6 +47,11 @@ jobs:
           mkdir -p site/dist
           cp -R dist/. site/dist/
           cp -R demo site/demo
+          
+          mkdir -p site/demo/dist
+          cp -R dist/. site/demo/dist/
+          find site/demo -name "*.html" -exec sed -i 's|"\.\./dist/|"./dist/|g' {} +
+          
           cp demo.html site/demo.html
           cp demo.html site/index.html
           cp demo_mini.html site/demo_mini.html
