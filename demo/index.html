@@ -2,487 +2,100 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>VanillaGrid • Interactive Demos</title>
+  <title>VanillaGrid Demos</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../vanillagrid.css" />
   <style>
-    * { box-sizing: border-box; }
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      margin: 0;
-      min-height: 100vh;
-      padding: 24px 0;
-      color: #111827;
-    }
-    .wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
-    .hero {
-      background: white;
-      padding: 32px;
-      border-radius: 16px;
-      margin-bottom: 24px;
-      text-align: center;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
-    }
-    .hero h1 { margin: 0 0 12px 0; font-size: 36px; }
-    .hero p { margin: 0 0 20px; color: #6b7280; font-size: 18px; line-height: 1.6; }
-    .hero-actions { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
-    .hero-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 18px;
-      border-radius: 999px;
-      font-size: 14px;
-      font-weight: 600;
-      text-decoration: none;
-      transition: all 0.2s ease;
-      border: 2px solid transparent;
-    }
-    .hero-link.primary { background: #4338ca; color: white; }
-    .hero-link.primary:hover { background: #3730a3; }
-    .hero-link.ghost { background: white; color: #4338ca; border-color: #c7d2fe; }
-    .hero-link.ghost:hover { border-color: #4338ca; }
-
-    .hero-stats {
-      display: flex;
-      justify-content: center;
-      gap: 32px;
-      margin-top: 4px;
-    }
-    .hero-stat-number {
-      font-size: 24px;
-      font-weight: 700;
-      color: #667eea;
-      margin-bottom: 4px;
-    }
-    .hero-stat-label {
-      font-size: 13px;
-      color: #6b7280;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    /* Search + filter chips */
-    .toolbar {
-      background: white;
-      padding: 16px 20px;
-      border-radius: 14px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      flex-wrap: wrap;
-      margin-bottom: 24px;
-      position: sticky;
-      top: 12px;
-      z-index: 5;
-    }
-    .toolbar input {
-      flex: 1 1 220px;
-      min-width: 200px;
-      padding: 10px 14px;
-      border: 2px solid #e5e7eb;
-      border-radius: 10px;
-      font-size: 14px;
-      transition: border-color 0.2s ease;
-      font-family: inherit;
-    }
-    .toolbar input:focus { outline: none; border-color: #667eea; }
-    .chip-row { display: flex; gap: 8px; flex-wrap: wrap; }
-    .chip {
-      border: 2px solid #e5e7eb;
-      background: white;
-      color: #111827;
-      padding: 6px 12px;
-      border-radius: 999px;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 500;
-      transition: all 0.2s ease;
-      font-family: inherit;
-    }
-    .chip:hover { border-color: #667eea; }
-    .chip.active { background: #4338ca; color: white; border-color: #4338ca; }
-    .chip .count {
-      display: inline-block;
-      margin-left: 6px;
-      background: rgba(0,0,0,0.08);
-      color: inherit;
-      padding: 1px 8px;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 600;
-    }
-    .chip.active .count { background: rgba(255,255,255,0.25); }
-
-    /* Categorised sections */
-    .section { margin-bottom: 32px; }
-    .section-head {
-      color: white;
-      display: flex;
-      align-items: baseline;
-      gap: 12px;
-      margin: 0 0 14px 4px;
-    }
-    .section-head h2 {
-      margin: 0;
-      font-size: 20px;
-      font-weight: 600;
-      letter-spacing: 0.2px;
-    }
-    .section-head p { margin: 0; color: rgba(255,255,255,0.85); font-size: 14px; }
-
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }
-    .card {
-      background: white;
-      border: 2px solid #e5e7eb;
-      border-radius: 16px;
-      padding: 22px;
-      text-decoration: none;
-      color: #111827;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-      position: relative;
-      transition: all 0.3s ease;
-      display: flex;
-      flex-direction: column;
-    }
-    .card:hover {
-      border-color: #667eea;
-      box-shadow: 0 8px 24px rgba(102, 126, 234, 0.2);
-      transform: translateY(-4px);
-    }
-    .card.featured {
-      border-color: #10b981;
-      background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
-    }
-    .card.featured .feature-icon { color: #10b981; }
-    .card.featured:hover {
-      border-color: #059669;
-      box-shadow: 0 8px 24px rgba(16, 185, 129, 0.2);
-    }
-    .card h3 { margin: 0 0 6px 0; font-size: 17px; font-weight: 600; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
-    .card p { margin: 0 0 12px; color: #6b7280; font-size: 14px; line-height: 1.5; flex: 1; }
-    .feature-icon {
-      font-size: 26px;
-      margin-bottom: 10px;
-      display: block;
-      opacity: 0.9;
-    }
-    .card-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
-    .tag {
-      display: inline-block;
-      background: #eef2ff;
-      color: #4338ca;
-      padding: 2px 10px;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 500;
-    }
-    .new-badge {
-      display: inline-block;
-      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-      color: white;
-      font-size: 10px;
-      font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 12px;
-      letter-spacing: 0.4px;
-      box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
-    }
-
-    .empty-state {
-      display: none;
-      background: white;
-      border-radius: 14px;
-      padding: 32px;
-      text-align: center;
-      color: #6b7280;
-    }
-    .empty-state.visible { display: block; }
-
-    .footer {
-      text-align: center;
-      color: rgba(255,255,255,0.85);
-      font-size: 13px;
-      margin: 32px 0 0;
-    }
-    .footer a { color: white; }
-
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; background:#f6f7fb; margin:0; }
+    .wrap { max-width: 980px; margin: 24px auto; padding: 0 16px; }
+    .hero { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px; border-radius: 12px; margin-bottom: 24px; text-align: center; }
+    .hero h1 { margin: 0 0 8px 0; font-size: 28px; }
+    .hero p { margin: 0; opacity: 0.9; font-size: 16px; }
+    .new-badge { display: inline-block; background: #ff6b6b; color: white; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 12px; margin-left: 8px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(240px,1fr)); gap: 16px; }
+    .card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:16px; text-decoration:none; color:#111; box-shadow: var(--vg-shadow); position: relative; transition: all 0.2s ease; }
+    .card:hover { border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,.15); }
+    .card.featured { border-color: #10b981; background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%); }
+    .card.featured:hover { border-color: #059669; box-shadow:0 0 0 3px rgba(16,185,129,.15); }
+    .card h3 { margin:0 0 6px 0; font-size:16px; }
+    .card p { margin:0; color:#6b7280; font-size:13px; }
+    .feature-icon { font-size: 20px; margin-bottom: 8px; display: block; }
+    
     /* Mobile optimizations */
     @media (max-width: 768px) {
       .wrap { margin: 16px auto; padding: 0 12px; }
-      .hero { padding: 20px 16px; margin-bottom: 16px; }
+      .hero { padding: 20px 16px; margin-bottom: 20px; }
       .hero h1 { font-size: 24px; }
       .hero p { font-size: 14px; }
-      .toolbar { padding: 12px; top: 0; border-radius: 12px; }
       .grid { grid-template-columns: 1fr; gap: 12px; }
-      .card { padding: 16px; }
+      .card { padding: 14px; }
       .card h3 { font-size: 15px; }
-      .card p { font-size: 13px; }
-      .card:active { transform: scale(0.98); transition: transform 0.1s ease; }
+      .card p { font-size: 12px; }
+      /* Touch-friendly cards */
+      .card:active { 
+        transform: scale(0.98);
+        transition: transform 0.1s ease;
+      }
     }
+    
     @media (max-width: 480px) {
       .hero h1 { font-size: 20px; }
+      .new-badge { font-size: 10px; padding: 2px 6px; }
     }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="hero">
-      <h1>🚀 VanillaGrid Demo Gallery</h1>
-      <p>A tiny dependency-free data grid for the web — explore every feature through hands-on demos.</p>
-      <div class="hero-actions">
-        <a class="hero-link primary" href="../demo.html">▶ Open the kitchen-sink demo</a>
-        <a class="hero-link ghost" href="https://github.com/SimonWaldherr/vanillagrid.js" target="_blank" rel="noopener">★ View on GitHub</a>
-      </div>
-      <div class="hero-stats">
-        <div>
-          <div class="hero-stat-number" id="stat-demos">16</div>
-          <div class="hero-stat-label">Demos</div>
-        </div>
-        <div>
-          <div class="hero-stat-number">7</div>
-          <div class="hero-stat-label">Themes</div>
-        </div>
-        <div>
-          <div class="hero-stat-number">0</div>
-          <div class="hero-stat-label">Dependencies</div>
-        </div>
-      </div>
+      <h1>🚀 VanillaGrid Demos</h1>
+      <p>Powerful data grid with enhanced search, filtering, pagination, and tree navigation</p>
     </div>
-
-    <div class="toolbar" role="search">
-      <input id="search" type="search" placeholder="🔎 Filter demos by name, description or tag…" autocomplete="off" />
-      <div class="chip-row" id="filter-chips" role="tablist" aria-label="Filter by category"></div>
+    <div class="grid">
+      <a class="card" href="basic.html">
+        <h3>Enhanced Search</h3>
+        <p>Multiple search modes: Simple, Case-Sensitive, Regex, and Tree Navigation for data exploration.</p>
+      </a>
+      <a class="card" href="quick-test.html">
+        <h3>Quick Test</h3>
+        <p>Interactive test page for the new enhanced search functionality.</p>
+      </a>
+      <a class="card" href="tree.html">
+        <h3>Tree Grid</h3>
+        <p>Hierarchical rows with expand/collapse.</p>
+      </a>
+      <a class="card" href="remote.html">
+        <h3>Remote Grid</h3>
+        <p>Server-side pagination and sorting.</p>
+      </a>
+      <a class="card" href="selection-columns.html">
+        <h3>Selection + Columns</h3>
+        <p>Row selection and configurable columns menu.</p>
+      </a>
+      <a class="card" href="rich-cells.html">
+        <h3>Rich Cell Types</h3>
+        <p>Images, links, buttons, progress bars, ratings.</p>
+      </a>
+      <a class="card" href="grouping.html">
+        <h3>Grouping & Aggregation</h3>
+        <p>Group data with sum, min, max calculations.</p>
+      </a>
+      <a class="card" href="pivot.html">
+        <h3>Pivot Table</h3>
+        <p>Interactive pivot builder with drag & drop.</p>
+      </a>
+      <a class="card" href="export.html">
+        <h3>Export & Print</h3>
+        <p>CSV/Markdown export and print functionality.</p>
+      </a>
+      <a class="card" href="advanced.html">
+        <h3>Advanced Features</h3>
+        <p>Column resizing, inline editing, context menus.</p>
+      </a>
+      <a class="card" href="data-explorer.html">
+        <h3>Data Explorer</h3>
+        <p>Load CSV/JSON/XML, sort, filter, group, pivot, export.</p>
+      </a>
     </div>
-
-    <div id="sections"></div>
-
-    <div class="empty-state" id="empty">
-      <h3 style="margin:0 0 8px;">No matching demos</h3>
-      <p style="margin:0;">Try a different keyword or clear the category filter.</p>
-    </div>
-
-    <p class="footer">
-      Built with VanillaGrid · <a href="https://github.com/SimonWaldherr/vanillagrid.js" target="_blank" rel="noopener">github.com/SimonWaldherr/vanillagrid.js</a>
-    </p>
   </div>
-
-  <script>
-    const categories = [
-      { id: 'getting-started', label: '🚀 Getting Started', description: 'New to VanillaGrid? Start here.' },
-      { id: 'data',            label: '📊 Data &amp; Visualization', description: 'Display, render and aggregate data.' },
-      { id: 'interaction',     label: '🖱️ Interaction',     description: 'Selecting, editing and reordering rows.' },
-      { id: 'advanced',        label: '⚙️ Advanced',        description: 'Server-side, pivots and dev tools.' },
-      { id: 'customization',   label: '🎨 Customization',   description: 'Themes, layout and localization.' }
-    ];
-
-    const demos = [
-      {
-        href: 'basic.html', icon: '🚀', title: 'Basic Grid', featured: true,
-        description: 'Essential features including sorting, filtering, pagination and column management. Perfect introduction to VanillaGrid.',
-        category: 'getting-started', badge: 'START HERE',
-        tags: ['sorting', 'filtering', 'pagination', 'beginner']
-      },
-      {
-        href: 'code-generator.html', icon: '🛠️', title: 'Code Generator', featured: true,
-        description: 'Visual configuration tool with live preview. Generate production-ready HTML, JavaScript and complete examples.',
-        category: 'getting-started',
-        tags: ['playground', 'export', 'snippet']
-      },
-      {
-        href: 'quick-test.html', icon: '🧪', title: 'Quick Test',
-        description: 'Interactive testing playground for experimenting with search modes, regex patterns and filters.',
-        category: 'getting-started',
-        tags: ['playground', 'search', 'regex']
-      },
-
-      {
-        href: 'rich-cells.html', icon: '🎨', title: 'Rich Cell Types',
-        description: 'Showcase all cell types: images, ratings (⭐), progress bars, badges, links and interactive buttons.',
-        category: 'data',
-        tags: ['cells', 'badges', 'images', 'rendering']
-      },
-      {
-        href: 'tree.html', icon: '🌳', title: 'Hierarchical Tree View',
-        description: 'Organize nested data with expandable/collapsible tree structures and unlimited depth support.',
-        category: 'data',
-        tags: ['tree', 'hierarchy', 'lazy-load']
-      },
-      {
-        href: 'grouping.html', icon: '📦', title: 'Grouping & Aggregation',
-        description: 'Group data by multiple fields with sum, average, min, max calculations and expandable groups.',
-        category: 'data',
-        tags: ['groupBy', 'aggregation', 'sum', 'avg']
-      },
-      {
-        href: 'pivot.html', icon: '📊', title: 'Advanced Pivot Table', featured: true,
-        description: 'Excel-like pivot builder with drag-and-drop interface, advanced filtering and comprehensive export capabilities.',
-        category: 'data', badge: 'D3.JS',
-        tags: ['pivot', 'd3', 'aggregation']
-      },
-      {
-        href: 'live-updates.html', icon: '📈', title: 'Live Updates', featured: true,
-        description: 'Real-time stock-ticker simulation that streams updates into the grid via the imperative addRow / updateRow / deleteRow API.',
-        category: 'data', badge: 'NEW',
-        tags: ['real-time', 'streaming', 'api', 'ticker']
-      },
-      {
-        href: 'data-explorer.html', icon: '🔬', title: 'Data Explorer',
-        description: 'Load CSV/JSON/XML files, dynamically analyze data, apply transformations and export results.',
-        category: 'data',
-        tags: ['csv', 'json', 'xml', 'import']
-      },
-
-      {
-        href: 'advanced.html', icon: '⚙️', title: 'Advanced Features',
-        description: 'Column resizing, inline editing, keyboard navigation, context menus and custom cell renderers.',
-        category: 'interaction',
-        tags: ['editing', 'keyboard', 'resize', 'context-menu']
-      },
-      {
-        href: 'selection-columns.html', icon: '✅', title: 'Selection & Columns',
-        description: 'Row selection with checkboxes, multi-select support and a configurable columns menu with visibility toggle.',
-        category: 'interaction',
-        tags: ['selection', 'checkbox', 'columns-menu']
-      },
-      {
-        href: 'export.html', icon: '💾', title: 'Export & Print',
-        description: 'Export to CSV/Markdown formats with customizable formatting and browser-based print functionality.',
-        category: 'interaction',
-        tags: ['csv', 'markdown', 'print', 'export']
-      },
-
-      {
-        href: 'remote.html', icon: '🌐', title: 'Remote Data Grid',
-        description: 'Server-side pagination, sorting and filtering with async data loading and loading states.',
-        category: 'advanced',
-        tags: ['server-side', 'async', 'pagination']
-      },
-      {
-        href: 'frozen-columns.html', icon: '🧊', title: 'Frozen Columns', featured: true,
-        description: 'Pin the first N columns while the rest scroll horizontally — switch the freeze count live on a wide sales matrix.',
-        category: 'advanced', badge: 'NEW',
-        tags: ['frozen', 'sticky', 'wide-table']
-      },
-
-      {
-        href: 'themes.html', icon: '🎨', title: 'Themes & Style', featured: true,
-        description: 'Pick from all 7 built-in themes and combine them with density and striped-row options through a live switcher.',
-        category: 'customization', badge: 'NEW',
-        tags: ['themes', 'dark-mode', 'density', 'striped']
-      },
-      {
-        href: 'i18n.html', icon: '🌍', title: 'Internationalization', featured: true,
-        description: 'Translate every UI string in real time. Switch between English, German, French and Spanish bundles.',
-        category: 'customization', badge: 'NEW',
-        tags: ['i18n', 'localization', 'languages']
-      }
-    ];
-
-    document.getElementById('stat-demos').textContent = demos.length;
-
-    const sectionsEl = document.getElementById('sections');
-    const sectionsByCat = {};
-
-    categories.forEach(cat => {
-      const sec = document.createElement('section');
-      sec.className = 'section';
-      sec.dataset.category = cat.id;
-      sec.innerHTML = `
-        <div class="section-head">
-          <h2>${cat.label}</h2>
-          <p>${cat.description}</p>
-        </div>
-        <div class="grid"></div>
-      `;
-      sectionsEl.appendChild(sec);
-      sectionsByCat[cat.id] = sec.querySelector('.grid');
-    });
-
-    function escapeHtml(s) {
-      return s.replace(/[&<>"']/g, c => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-      }[c]));
-    }
-
-    demos.forEach(demo => {
-      const target = sectionsByCat[demo.category];
-      if (!target) return;
-      const a = document.createElement('a');
-      a.className = 'card' + (demo.featured ? ' featured' : '');
-      a.href = demo.href;
-      a.dataset.search = (
-        demo.title + ' ' + demo.description + ' ' + demo.tags.join(' ')
-      ).toLowerCase();
-      const badge = demo.badge
-        ? ` <span class="new-badge">${escapeHtml(demo.badge)}</span>`
-        : '';
-      a.innerHTML = `
-        <span class="feature-icon">${demo.icon}</span>
-        <h3>${escapeHtml(demo.title)}${badge}</h3>
-        <p>${escapeHtml(demo.description)}</p>
-        <div class="card-tags">
-          ${demo.tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}
-        </div>
-      `;
-      target.appendChild(a);
-    });
-
-    // Filter chips
-    const chipsEl = document.getElementById('filter-chips');
-    const allChip = document.createElement('button');
-    allChip.className = 'chip active';
-    allChip.dataset.filter = 'all';
-    allChip.innerHTML = `All <span class="count">${demos.length}</span>`;
-    chipsEl.appendChild(allChip);
-    categories.forEach(cat => {
-      const count = demos.filter(d => d.category === cat.id).length;
-      if (count === 0) return;
-      const btn = document.createElement('button');
-      btn.className = 'chip';
-      btn.dataset.filter = cat.id;
-      btn.innerHTML = `${cat.label} <span class="count">${count}</span>`;
-      chipsEl.appendChild(btn);
-    });
-
-    let activeFilter = 'all';
-    let activeQuery = '';
-
-    function applyFilters() {
-      let visibleTotal = 0;
-      categories.forEach(cat => {
-        const sec = sectionsEl.querySelector(`.section[data-category="${cat.id}"]`);
-        if (!sec) return;
-        const matchesCategory = activeFilter === 'all' || activeFilter === cat.id;
-        let visibleInSection = 0;
-        sec.querySelectorAll('.card').forEach(card => {
-          const matchesQuery = !activeQuery || card.dataset.search.includes(activeQuery);
-          const visible = matchesCategory && matchesQuery;
-          card.style.display = visible ? '' : 'none';
-          if (visible) visibleInSection++;
-        });
-        sec.style.display = visibleInSection === 0 ? 'none' : '';
-        visibleTotal += visibleInSection;
-      });
-      document.getElementById('empty').classList.toggle('visible', visibleTotal === 0);
-    }
-
-    chipsEl.addEventListener('click', e => {
-      const chip = e.target.closest('.chip');
-      if (!chip) return;
-      activeFilter = chip.dataset.filter;
-      chipsEl.querySelectorAll('.chip').forEach(el =>
-        el.classList.toggle('active', el === chip));
-      applyFilters();
-    });
-
-    document.getElementById('search').addEventListener('input', e => {
-      activeQuery = e.target.value.trim().toLowerCase();
-      applyFilters();
-    });
-
-    applyFilters();
-  </script>
 </body>
 </html>
