@@ -8,8 +8,7 @@
     "table",
     "datagrid",
     "vanilla",
-    "no-dependencies",
-    "typescript",
+    "javascript",
     "csv",
     "markdown",
     "pivot",
@@ -25,51 +24,27 @@
   },
   "license": "MIT",
   "author": "Simon Waldherr",
-  "main": "dist/vanillagrid.umd.js",
-  "module": "dist/vanillagrid.esm.js",
-  "types": "dist/vanillagrid.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/vanillagrid.d.ts",
-      "import": "./dist/vanillagrid.esm.js",
-      "require": "./dist/vanillagrid.umd.js",
-      "default": "./dist/vanillagrid.umd.js"
-    },
-    "./style.css": "./dist/vanillagrid.min.css",
-    "./pivot": "./dist/vg-pivot-d3.min.js",
-    "./pivot.css": "./dist/vg-pivot-d3.min.css",
-    "./package.json": "./package.json"
-  },
+  "main": "vanillagrid.js",
+  "browser": "vanillagrid.js",
   "files": [
+    "vanillagrid.js",
+    "vanillagrid.css",
+    "vg-pivot-d3.js",
+    "vg-pivot-d3.css",
     "dist",
-    "src",
     "README.md",
     "LICENSE"
   ],
-  "sideEffects": [
-    "*.css"
-  ],
-  "engines": {
-    "node": ">=18"
-  },
   "scripts": {
-    "start": "npm run build && node scripts/serve.js",
-    "build": "npm run clean && npm run rollup && npm run minify-css && npm run minify-pivot",
+    "start": "node scripts/serve.js",
+    "build": "npm run clean && npm run minify",
     "clean": "rm -rf dist && mkdir -p dist",
-    "rollup": "rollup -c rollup.config.mjs",
-    "minify-css": "cleancss -o dist/vanillagrid.min.css src/vanillagrid.css && cleancss -o dist/vg-pivot-d3.min.css src/vg-pivot-d3.css",
-    "minify-pivot": "terser src/vg-pivot-d3.js --compress --mangle --output dist/vg-pivot-d3.min.js"
+    "minify": "terser vanillagrid.js --compress --mangle --comments '/^!/' --output dist/vanillagrid.min.js && cleancss -o dist/vanillagrid.min.css vanillagrid.css && terser vg-pivot-d3.js --compress --mangle --comments '/^!/' --output dist/vg-pivot-d3.min.js && cleancss -o dist/vg-pivot-d3.min.css vg-pivot-d3.css",
+    "check": "node --check vanillagrid.js && node --check vg-pivot-d3.js && node --check scripts/serve.js",
+    "prepack": "npm run build && npm run check"
   },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^29.0.0",
-    "@rollup/plugin-node-resolve": "^16.0.3",
-    "@rollup/plugin-terser": "^0.4.4",
-    "@rollup/plugin-typescript": "^12.3.0",
-    "clean-css-cli": "^5.6.3",
-    "rollup": "^4.59.0",
     "terser": "^5.33.0",
-    "tslib": "^2.8.1",
-    "typescript": "^5.9.3"
+    "clean-css-cli": "^5.6.3"
   }
 }
-

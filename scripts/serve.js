@@ -2,7 +2,6 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { spawnSync } = require('child_process');
 
 const args = process.argv.slice(2);
 const getArg = (name, fallback) => {
@@ -14,21 +13,6 @@ const getArg = (name, fallback) => {
 const host = getArg('host', '127.0.0.1');
 const port = parseInt(getArg('port', '8000'), 10);
 const root = process.cwd();
-
-// Ensure dist/ is built before serving. The repository ignores `dist/` on
-// `main`, so a fresh clone has no built assets and the demos would fail with
-// "Can't find variable: VanillaGrid" because `dist/vanillagrid.min.js` 404s.
-// Build automatically when the expected entry file is missing.
-const distEntry = path.join(root, 'dist', 'vanillagrid.min.js');
-if (!fs.existsSync(distEntry)) {
-  console.log('dist/ not found - running `npm run build` to generate assets...');
-  const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-  const result = spawnSync(npmCmd, ['run', 'build'], { stdio: 'inherit', cwd: root });
-  if (result.status !== 0) {
-    console.error('Build failed; cannot start dev server.');
-    process.exit(result.status || 1);
-  }
-}
 
 const mime = {
   '.html': 'text/html; charset=UTF-8',
@@ -55,8 +39,18 @@ const send = (res, status, headers, body) => {
 };
 
 const server = http.createServer((req, res) => {
-  const urlPath = decodeURIComponent(req.url.split('?')[0]);
-  let filePath = path.join(root, urlPath);
+  let urlPath;
+  try {
+    urlPath = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
+  } catch {
+    return send(res, 400, { 'Content-Type': 'text/plain; charset=UTF-8' }, 'Bad Request');
+  }
+
+  const relativePath = urlPath.replace(/^[/\\]+/, '');
+  let filePath = path.resolve(root, relativePath);
+  if (filePath !== root && !filePath.startsWith(root + path.sep)) {
+    return send(res, 403, { 'Content-Type': 'text/plain; charset=UTF-8' }, 'Forbidden');
+  }
 
   // Directory handling
   try {

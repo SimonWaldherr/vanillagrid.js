@@ -46,6 +46,7 @@ jobs:
           rm -rf site
           mkdir -p site/dist
           cp -R dist/. site/dist/
+          cp vanillagrid.js vanillagrid.css vg-pivot-d3.js vg-pivot-d3.css site/
           cp -R demo site/demo
           
           mkdir -p site/demo/dist

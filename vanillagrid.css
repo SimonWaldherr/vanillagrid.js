@@ -192,60 +192,13 @@
   font-size: 14px;
   background: transparent;
   color: var(--vg-fg);
-  transition: background-color .2s ease, transform .12s ease;
+  transition: background-color .2s ease;
 }
 .vg-filter-input::placeholder {
   color: var(--vg-muted);
 }
 .vg-filter-input:focus { 
   background: var(--vg-surface-1);
-}
-.vg-filter-input.vg-typing {
-  /* Replaces the previous JS-driven inline-style "scale(1.02)" hack */
-  transform: scale(1.015);
-}
-
-/* Wrapper that holds the input + clear button so the (×) sits inside the rounded edge. */
-.vg-filter-input-wrap {
-  position: relative;
-  display: flex;
-  align-items: stretch;
-  flex: 1;
-  min-width: 0;
-}
-.vg-filter-input-wrap .vg-filter-input {
-  padding-right: 28px; /* room for the clear button */
-}
-.vg-filter-clear {
-  position: absolute;
-  top: 50%;
-  right: 6px;
-  transform: translateY(-50%);
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--vg-muted);
-  font-size: 18px;
-  line-height: 1;
-  cursor: pointer;
-  transition: background-color .15s ease, color .15s ease;
-}
-.vg-filter-input-wrap.has-value .vg-filter-clear {
-  display: inline-flex;
-}
-.vg-filter-clear:hover {
-  background: var(--vg-surface-2, rgba(0,0,0,0.06));
-  color: var(--vg-fg);
-}
-.vg-filter-clear:focus-visible {
-  outline: 2px solid var(--vg-accent, #3b82f6);
-  outline-offset: 1px;
 }
 
 .vg-regex { color: var(--vg-muted); display: inline-flex; gap: 6px; align-items: center; }

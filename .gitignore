@@ -1,7 +1,6 @@
 node_modules
 dist/
 .DS_Store
-*.tsbuildinfo
 *.log
 npm-debug.log*
 .vscode/

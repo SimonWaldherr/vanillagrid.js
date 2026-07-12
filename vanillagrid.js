@@ -4,317 +4,129 @@
  * pagination, grouping (sum/min/max), selection, resizing, basic editing,
  * context menu, export, tree data, and optional pivot-like view.
  * No dependencies. MIT License.
+ *
+ * Usage:
+ *   const grid = new VanillaGrid('#el', { data, columns, filterable: true });
+ *   grid.setFilter('term');
+ *   grid.setSort('name', 'asc');
+ *   grid.setGroupBy('department');
+ *
+ * Public API (selected):
+ *   - setData(data:Array<object>)
+ *   - getData(): Array<object>
+ *   - setFilter(text:string, opts?:{ regexMode?:boolean, caseSensitive?:boolean })
+ *   - setSort(key:string, dir:'asc'|'desc')
+ *   - setGroupBy(key?:string)
+ *
+ * The code aims to keep DOM re-renders scoped (header/body/pager/toolbar)
+ * and uses delegated event listeners to avoid stacking across re-renders.
  */
+(function (global) {
+  const VG_STYLE_THEMES = [
+    { value: 'light', label: 'Light', dark: false },
+    { value: 'dark-blue', label: 'Dark Blue', dark: true },
+    { value: 'dark-grey', label: 'Dark Grey', dark: true },
+    { value: 'midnight', label: 'Midnight Violet', dark: true },
+    { value: 'forest', label: 'Forest Night', dark: true },
+    { value: 'ocean', label: 'Ocean Breeze', dark: false },
+    { value: 'sand', label: 'Sand Dune', dark: false }
+  ];
 
-// @ts-nocheck - Temporarily disable type checking for the large conversion
-// TODO: Gradually enable strict typing by removing this and fixing errors
-
-// ============================================================================
-// Type Definitions
-// ============================================================================
-
-export type VGCellType = 'text' | 'number' | 'date' | 'button' | 'image' | 'html' | 'progress' | 'rating' | 'badge' | 'color' | string;
-export type VGSortDirection = 'asc' | 'desc';
-export type VGFilterMode = 'simple' | 'case-sensitive' | 'regex' | 'tree';
-export type VGExportFormat = 'csv' | 'md';
-export type VGExportScope = 'page' | 'all';
-export type VGThemeValue = 'light' | 'dark-blue' | 'dark-grey' | 'midnight' | 'forest' | 'ocean' | 'sand' | string;
-export type VGDensityValue = 'comfortable' | 'compact';
-export type VGAggregation = 'sum' | 'avg' | 'min' | 'max' | 'count';
-export type VGFilterOperator = 'equals' | 'contains' | 'starts' | 'greater' | 'less';
-export type VGDropPosition = 'before' | 'after';
-
-/** Column definition for VanillaGrid */
-export interface VGColumn {
-  key: string;
-  label?: string;
-  type?: VGCellType;
-  sortable?: boolean;
-  filterable?: boolean;
-  format?: (val: any, row?: any) => string;
-  render?: (val: any, row?: any) => string | HTMLElement;
-  aggregations?: VGAggregation[];
-  link?: {
-    text?: string;
-    target?: string;
+  const VG_STYLE_DEFAULT_STATE = {
+    theme: 'light',
+    density: 'comfortable',
+    striped: false,
   };
-  image?: {
-    alt?: string;
-    width?: number;
-    height?: number;
-  };
-  button?: {
-    text?: string;
-    onClick?: (row: any, btn: HTMLElement) => void;
-  };
-}
 
-/** Export configuration */
-export interface VGExporting {
-  enabled: boolean;
-  formats: VGExportFormat[];
-  scope: VGExportScope;
-  filename: string;
-}
+  /**
+  * @typedef {Object} VGColumn
+  * @property {string} key - Field name in the data rows
+  * @property {string} [label] - Column header label
+  * @property {('text'|'number'|'date'|'button'|'image')} [type]
+  * @property {boolean} [sortable]
+  * @property {(val:any,row?:object)=>string} [format]
+  * @property {(val:any,row?:object)=>string|HTMLElement} [render]
+  * @property {{ text?: string, target?: string }} [link]
+  * @property {{ alt?: string, width?: number, height?: number }} [image]
+  * @property {{ text?: string, onClick?: (row:object, btn:HTMLElement)=>void }} [button]
+  */
 
-/** Tree/hierarchical grid options */
-export interface VGTreeOptions {
-  enabled: boolean;
-  childrenKey: string;
-  indent: number;
-  lazy: boolean;
-  initiallyExpanded: boolean;
-  hasChildrenKey: string;
-}
+  /**
+  * @typedef {Object} VGExporting
+  * @property {boolean} enabled
+  * @property {Array<'csv'|'md'>} formats
+  * @property {'page'|'all'} scope
+  * @property {string} filename
+  */
 
-/** Pivot table configuration */
-export interface VGPivotConfig {
-  rows: string[];
-  columns: string[];
-  values: string[];
-  aggregations: Record<string, VGAggregation>;
-  filters?: Record<string, { operator: VGFilterOperator; value: string }> | any[];
-}
+  /**
+  * @typedef {Object} VGTreeOptions
+  * @property {boolean} enabled
+  * @property {string} childrenKey
+  * @property {number} indent
+  * @property {boolean} lazy
+  * @property {boolean} initiallyExpanded
+  * @property {string} hasChildrenKey
+  */
 
-/** Style controls configuration */
-export interface VGStyleControls {
-  enabled: boolean;
-  persistKey?: string | false;
-  scope?: 'global' | 'instance';
-}
+  /**
+  * @typedef {Object} VGPivotConfig
+  * @property {string[]} rows
+  * @property {string[]} columns
+  * @property {string[]} values
+  * @property {Record<string,Function>} aggregations
+  */
 
-/** Columns menu configuration */
-export interface VGColumnsMenu {
-  location?: 'pager' | 'toolbar';
-  label?: string;
-  showSearch?: boolean;
-  showSelectAll?: boolean;
-  include?: string[];
-  exclude?: string[];
-  persistKey?: string;
-  initialHidden?: string[];
-}
-
-/** i18n strings */
-export interface VGI18n {
-  tableLabel: string;
-  filterPlaceholder: string;
-  regexLabel: string;
-  invalidRegex: string;
-  noGroup: string;
-  groupByPrefix: string;
-  perPageSuffix: string;
-  search: {
-    simple: string;
-    caseSensitive: string;
-    regex: string;
-    treeFilter: string;
-  };
-  pager: {
-    pageInfo: (page: number, total: number) => string;
-    prev: string;
-    next: string;
-    first: string;
-    last: string;
-    totalRows: (n: number) => string;
-    totalGroups: (n: number) => string;
-  };
-  group: {
-    count: string;
-    min: string;
-    max: string;
-  };
-  aria: {
-    toggleGroup: string;
-    expandRow: string;
-    collapseRow: string;
-    clearFilter: string;
-  };
-  noResults?: (term: string) => string;
-  export: {
-    button: string;
-    csv: string;
-    markdown: string;
-    format: string;
-  };
-}
-
-/** Options for VanillaGrid constructor */
-export interface VanillaGridOptions<T extends Record<string, any> = Record<string, any>> {
-  data: T[];
-  columns: VGColumn[];
-  pageSize?: number;
-  pageSizes?: number[];
-  sortable?: boolean;
-  filterable?: boolean;
-  pagination?: boolean;
-  groupable?: boolean;
-  groupBy?: string | null;
-  regexFilter?: boolean;
-  className?: string;
-  emptyMessage?: string;
-  theme?: VGThemeValue;
-  density?: VGDensityValue;
-  striped?: boolean;
-  styleControls?: VGStyleControls | boolean;
-  i18n?: Partial<VGI18n>;
-  tree?: Partial<VGTreeOptions>;
-  loadChildren?: (row: T) => Promise<T[]>;
-  serverPagination?: boolean;
-  serverSorting?: boolean;
-  serverFiltering?: boolean;
-  loadPage?: (args: {
-    page: number;
-    pageSize: number;
-    sortKey?: string;
-    sortDir?: VGSortDirection;
-    filter?: string;
-    regexMode?: boolean;
-    caseSensitive?: boolean;
-  }) => Promise<{ rows: T[]; total: number }>;
-  exporting?: Partial<VGExporting>;
-  selectable?: boolean;
-  onSelectionChange?: (rows: T[]) => void;
-  columnsMenu?: boolean | Partial<VGColumnsMenu>;
-  onColumnsVisibilityChange?: (hidden: Set<string>) => void;
-  resizableColumns?: boolean;
-  editableRows?: boolean;
-  rowDragDrop?: boolean;
-  frozenColumns?: number;
-  keyboardNavigation?: boolean;
-  contextMenu?: boolean;
-  onRowEdit?: (row: T, field: string, newValue: any, oldValue: any) => void;
-  onRowDrop?: (draggedRow: T, targetRow: T, position: VGDropPosition) => void;
-  customCellTypes?: Record<string, (value: any, column: VGColumn, row: T) => string | HTMLElement>;
-  pivotMode?: boolean;
-  pivotConfig?: Partial<VGPivotConfig>;
-  onPivotChange?: (pivotData: any, config: VGPivotConfig) => void;
-}
-
-/** Internal row with assigned ID */
-interface VGRow extends Record<string, any> {
-  __vgid?: number;
-  children?: VGRow[];
-}
-
-/** Internal state */
-interface VGState {
-  sortKey: string | null;
-  sortDir: VGSortDirection;
-  filter: string;
-  filterMode: VGFilterMode;
-  regexMode: boolean;
-  caseSensitive: boolean;
-  treeFilterExpanded: Set<string>;
-  page: number;
-  pageSize: number;
-  groupBy: string | null;
-  regexError: string;
-  collapsed: Set<string>;
-  expanded: Set<number>;
-  loadingChildren: Set<number>;
-  serverTotalRows: number | null;
-  selected: Set<number>;
-  hiddenCols: Set<string>;
-  columnWidths: Map<string, number>;
-  editingCell: { rowId: number; columnKey: string } | null;
-  draggedRow: any | null;
-  focusedCell: { rowId: number; columnKey: string } | null;
-  pivotData: any | null;
-  originalData: any[] | null;
-  originalColumns: VGColumn[] | null;
-  pivotControlsCollapsed: boolean;
-}
-
-/** Style state */
-interface VGStyleState {
-  theme: VGThemeValue;
-  density: VGDensityValue;
-  striped: boolean;
-}
-
-// ============================================================================
-// Constants
-// ============================================================================
-
-const VG_STYLE_THEMES: Array<{ value: VGThemeValue; label: string; dark: boolean }> = [
-  { value: 'light', label: 'Light', dark: false },
-  { value: 'dark-blue', label: 'Dark Blue', dark: true },
-  { value: 'dark-grey', label: 'Dark Grey', dark: true },
-  { value: 'midnight', label: 'Midnight Violet', dark: true },
-  { value: 'forest', label: 'Forest Night', dark: true },
-  { value: 'ocean', label: 'Ocean Breeze', dark: false },
-  { value: 'sand', label: 'Sand Dune', dark: false }
-];
-
-const VG_STYLE_DEFAULT_STATE: VGStyleState = {
-  theme: 'light',
-  density: 'comfortable',
-  striped: false,
-};
-
-// ============================================================================
-// Main Class
-// ============================================================================
-
-/**
- * VanillaGrid - A tiny, dependency-free data grid
- * 
- * @template T - The type of data rows in the grid
- */
-class VanillaGrid<T extends Record<string, any> = Record<string, any>> {
-
-  container: HTMLElement;
-  root: HTMLElement;
-  opts: any; // Using any to avoid deep Required issues with optional nested objects
-  columns: VGColumn[];
-  data: VGRow[];
-  state: VGState;
-  styleState: VGStyleState;
-  rowById: Map<number, VGRow>;
-  toolbarEl: HTMLElement | null = null;
-  headerEl: HTMLElement | null = null;
-  bodyEl: HTMLElement | null = null;
-  pagerEl: HTMLElement | null = null;
-  tableEl: HTMLTableElement | null = null;
-  theadEl: HTMLTableSectionElement | null = null;
-  tbodyEl: HTMLTableSectionElement | null = null;
-  
-  private _idCounter: number = 0;
-  private _totalPages: number = 1;
-  private _onDocClickFilterMode: ((e: Event) => void) | null = null;
-  private _onDocClickTreeFilter: ((e: Event) => void) | null = null;
-  private _onToolbarTreeClick: ((e: Event) => void) | null = null;
-  private _onBodyClick: ((e: Event) => void) | null = null;
-  private _onBodyDblClick: ((e: Event) => void) | null = null;
-  private _onBodyContextMenu: ((e: Event) => void) | null = null;
-  private _onBodyKeyDown: ((e: KeyboardEvent) => void) | null = null;
-  private _onHeaderClick: ((e: Event) => void) | null = null;
-  private _onHeaderMouseDown: ((e: MouseEvent) => void) | null = null;
-  private _onToolbarClick: ((e: Event) => void) | null = null;
-  private _onToolbarChange: ((e: Event) => void) | null = null;
-  private _onPagerClick: ((e: Event) => void) | null = null;
-  private _resizeState: {
-    column: string | null;
-    startX: number;
-    startWidth: number;
-  } | null = null;
-  private _onDocClickSettings: ((e: Event) => void) | null = null;
-  private _initialContainerHtml: string = '';
-  private _initialClassName: string = '';
-
+  /**
+  * @typedef {Object} VanillaGridOptions
+  * @property {object[]} data
+  * @property {VGColumn[]} columns
+  * @property {number} [pageSize]
+  * @property {number[]} [pageSizes]
+  * @property {boolean} [sortable]
+  * @property {boolean} [filterable]
+  * @property {boolean} [pagination]
+  * @property {boolean} [groupable]
+  * @property {string|null} [groupBy]
+  * @property {boolean} [regexFilter]
+  * @property {string} [className]
+  * @property {string} [emptyMessage]
+  * @property {VGTreeOptions} [tree]
+  * @property {(row:object)=>Promise<object[]>} [loadChildren]
+  * @property {boolean} [serverPagination]
+  * @property {boolean} [serverSorting]
+  * @property {boolean} [serverFiltering]
+  * @property {(args:{page:number,pageSize:number,sortKey?:string,sortDir?:string,filter?:string,regexMode?:boolean})=>Promise<{rows:object[],total:number}>} [loadPage]
+  * @property {VGExporting} [exporting]
+  * @property {boolean} [selectable]
+  * @property {(rows:object[])=>void} [onSelectionChange]
+  * @property {boolean|object} [columnsMenu]
+  * @property {(hidden:Set<string>)=>void} [onColumnsVisibilityChange]
+  * @property {boolean} [resizableColumns]
+  * @property {boolean} [editableRows]
+  * @property {boolean} [rowDragDrop]
+  * @property {number} [frozenColumns]
+  * @property {boolean} [keyboardNavigation]
+  * @property {boolean} [contextMenu]
+  * @property {(row:object, field:string, newValue:any, oldValue:any)=>void} [onRowEdit]
+  * @property {(draggedRow:object, targetRow:object, position:'before'|'after')=>void} [onRowDrop]
+  * @property {Record<string,Function>} [customCellTypes]
+  * @property {boolean} [pivotMode]
+  * @property {VGPivotConfig} [pivotConfig]
+  * @property {(pivotData:any, config:VGPivotConfig)=>void} [onPivotChange]
+  */
+  class VanillaGrid {
     /**
      * Create a VanillaGrid instance.
      * @param {string|HTMLElement} container - CSS selector or DOM node to mount into
      * @param {VanillaGridOptions} options - Configuration and data
      */
-    constructor(container: string | HTMLElement, options: VanillaGridOptions<T>) {
-      const el = (typeof container === 'string')
-        ? document.querySelector<HTMLElement>(container)
+    constructor(container, options) {
+      this.container = (typeof container === 'string')
+        ? document.querySelector(container)
         : container;
 
-      if (!el) throw new Error('VanillaGrid: container not found');
-      this.container = el;
+      if (!this.container) throw new Error('VanillaGrid: container not found');
 
       // Options
       const defaults = {
@@ -334,7 +146,7 @@ class VanillaGrid<T extends Record<string, any> = Record<string, any>> {
         density: 'comfortable',
         striped: false,
         styleControls: {
-          enabled: false,
+          enabled: true,
           persistKey: 'vanillagrid:style',
         },
         // i18n strings (override any to localize)
@@ -362,8 +174,7 @@ class VanillaGrid<T extends Record<string, any> = Record<string, any>> {
             totalGroups: n => `${n} group(s)`,
           },
           group: { count: 'Count', min: 'min', max: 'max' },
-          aria: { toggleGroup: 'Toggle group', expandRow: 'Expand', collapseRow: 'Collapse', clearFilter: 'Clear filter' },
-          noResults: (term) => term ? `No results for "${term}".` : 'No rows to display.',
+          aria: { toggleGroup: 'Toggle group', expandRow: 'Expand', collapseRow: 'Collapse' },
           export: { button: 'Export', csv: 'CSV', markdown: 'Markdown', format: 'Format' }
         },
         // Tree options
@@ -472,14 +283,11 @@ class VanillaGrid<T extends Record<string, any> = Record<string, any>> {
         pivotControlsCollapsed: false,
       };
 
-      // Root: use the provided container directly (avoid an extra wrapper div)
-      this.root = this.container;
-      // Save original container content and classes so we can restore on destroy()
-      this._initialContainerHtml = this.root.innerHTML;
-      this._initialClassName = this.root.className || '';
-      // reset content and apply vg-container class
-      this.root.innerHTML = '';
+      // Root
+      this.root = document.createElement('div');
       this.root.className = `vg-container ${this.opts.className}`.trim();
+      this.container.innerHTML = '';
+      this.container.appendChild(this.root);
 
   this._initStyleState();
 
@@ -499,69 +307,8 @@ class VanillaGrid<T extends Record<string, any> = Record<string, any>> {
       this._renderPager();
     }
 
-  /** Destroy grid instance and clean up DOM / document handlers. */
-  destroy() {
-    try {
-      if (this._typingPulseTimer) {
-        clearTimeout(this._typingPulseTimer);
-        this._typingPulseTimer = null;
-      }
-      if (this._onDocClickFilterMode) {
-        document.removeEventListener('click', this._onDocClickFilterMode);
-        this._onDocClickFilterMode = null;
-      }
-      if (this._onDocClickSettings) {
-        this._detachSettingsDocHandler();
-      }
-      if (this.root) {
-        this.root.innerHTML = this._initialContainerHtml;
-        this.root.className = this._initialClassName;
-      }
-    } catch (e) {
-      console.warn('[VanillaGrid] Error during destroy:', e);
-    }
-  }
-
-  /** Alias for destroy(). */
-  dispose() { this.destroy(); }
-
   /** Get a shallow copy of current data. */
   getData() { return this.data.slice(); }
-
-  /**
-   * Re-render the entire grid (toolbar, header, body, pager) without changing data or state.
-   * Useful after external mutations to row objects, column option mutations, or i18n changes.
-   */
-  refresh() {
-    if (!this.root) return;
-    this._renderToolbar();
-    this._renderHeader();
-    this._renderBody();
-    this._renderPager();
-  }
-
-  /**
-   * Replace the column definitions at runtime and re-render.
-   * Preserves data, sort, filter and pagination state.
-   * @param columns New column definitions array (same shape as constructor `columns` option).
-   */
-  setColumns(columns) {
-    if (!Array.isArray(columns)) return;
-    this.opts.columns = columns.slice();
-    this.columns = this.opts.columns;
-    // Drop sort key if it no longer exists; keep filter/page.
-    if (this.state.sortKey && !this.columns.some(c => c.key === this.state.sortKey)) {
-      this.state.sortKey = null;
-    }
-    // Clear column-width overrides for removed columns
-    if (this.state.columnWidths) {
-      const validKeys = new Set(this.columns.map(c => c.key));
-      for (const k of Array.from(this.state.columnWidths.keys())) {
-        if (!validKeys.has(k)) this.state.columnWidths.delete(k);
-      }
-    }
-    this.refresh();
-  }
 
   /**
    * Set grouping by a column key (or null to disable).
@@ -913,10 +660,7 @@ class VanillaGrid<T extends Record<string, any> = Record<string, any>> {
         <div class="vg-toolbar-row">
           ${filterable ? `
           <div class="vg-filter">
-            <div class="vg-filter-input-wrap${this.state.filter ? ' has-value' : ''}">
-              <input type="text" class="vg-filter-input" placeholder="${this._escAttr(i18n.filterPlaceholder)}" value="${this._escAttr(this.state.filter)}" aria-label="${this._escAttr(i18n.filterPlaceholder)}" />
-              <button type="button" class="vg-filter-clear" aria-label="${this._escAttr((i18n.aria && i18n.aria.clearFilter) || 'Clear filter')}" title="${this._escAttr((i18n.aria && i18n.aria.clearFilter) || 'Clear filter')}" tabindex="-1">×</button>
-            </div>
+            <input type="text" class="vg-filter-input" placeholder="${this._escAttr(i18n.filterPlaceholder)}" value="${this._escAttr(this.state.filter)}" aria-label="${this._escAttr(i18n.filterPlaceholder)}" />
             <div class="vg-filter-mode">
               <div class="vg-filter-mode-btn" aria-label="Filter mode">
                 <span class="vg-filter-mode-current">${this._esc(i18n.search[this.state.filterMode])}</span>
@@ -961,41 +705,21 @@ class VanillaGrid<T extends Record<string, any> = Record<string, any>> {
       // column toggles may be in toolbar depending on config
 
       if (input) {
-        const inputWrap = this.toolbarEl.querySelector('.vg-filter-input-wrap');
-        const updateClearVisibility = () => {
-          if (inputWrap) inputWrap.classList.toggle('has-value', !!input.value);
-        };
         input.oninput = () => {
-          // Add typing pulse class (CSS handles the animation, no inline style mutation)
-          input.classList.add('vg-typing');
-          if (this._typingPulseTimer) clearTimeout(this._typingPulseTimer);
-          this._typingPulseTimer = setTimeout(() => {
-            input.classList.remove('vg-typing');
-            this._typingPulseTimer = null;
-          }, 120);
-
-          updateClearVisibility();
+          // Add typing animation
+          input.style.transform = 'scale(1.02)';
+          setTimeout(() => {
+            input.style.transform = '';
+          }, 100);
+          
           this._applyFilter();
         };
-        const btnClear = this.toolbarEl.querySelector('.vg-filter-clear');
-        if (btnClear) {
-          btnClear.onclick = (e) => {
-            e.preventDefault();
-            if (!input.value) return;
-            input.value = '';
-            updateClearVisibility();
-            this._applyFilter();
-            input.focus();
-          };
-        }
         
         // Enhanced keyboard navigation
         input.onkeydown = (e) => {
           switch (e.key) {
             case 'Escape':
-              if (!input.value) break;
               input.value = '';
-              if (inputWrap) inputWrap.classList.remove('has-value');
               this._applyFilter();
               break;
             case 'ArrowDown':
@@ -2224,28 +1948,6 @@ class VanillaGrid<T extends Record<string, any> = Record<string, any>> {
       }
     }
 
-    /** Build the message shown when no rows match. Honors i18n.noResults if defined. */
-    _buildEmptyMessage() {
-      const term = (this.state.filter || '').trim();
-      const i18nNoResults = this.opts.i18n && this.opts.i18n.noResults;
-      if (term && typeof i18nNoResults === 'function') {
-        try { return i18nNoResults(term); } catch { /* fall through */ }
-      }
-      return this.opts.emptyMessage;
-    }
-
-    /** Append an empty-state row to tbody and return it. */
-    _appendEmptyRow() {
-      const tr = document.createElement('tr');
-      const td = document.createElement('td');
-      td.colSpan = this._colCount();
-      td.className = 'vg-empty';
-      td.textContent = this._buildEmptyMessage();
-      tr.appendChild(td);
-      this.tbodyEl.appendChild(tr);
-      return tr;
-    }
-
     _renderBody() {
   const result = this._process();
       this.tbodyEl.innerHTML = '';
@@ -2253,8 +1955,13 @@ class VanillaGrid<T extends Record<string, any> = Record<string, any>> {
       if (this.opts.tree.enabled) {
         const rows = result.pageFlatRows || [];
         if (rows.length === 0) {
-          this._appendEmptyRow();
-          this._updateAriaCounts(0);
+          const tr = document.createElement('tr');
+          const td = document.createElement('td');
+          td.colSpan = this._colCount();
+          td.className = 'vg-empty';
+          td.textContent = this.opts.emptyMessage;
+          tr.appendChild(td);
+          this.tbodyEl.appendChild(tr);
           return;
         }
         rows.forEach(meta => {
@@ -2263,8 +1970,13 @@ class VanillaGrid<T extends Record<string, any> = Record<string, any>> {
       } else if (!result.hasGroups) {
         const rows = result.pageRows;
         if (rows.length === 0) {
-          this._appendEmptyRow();
-          this._updateAriaCounts(0);
+          const tr = document.createElement('tr');
+          const td = document.createElement('td');
+          td.colSpan = this._colCount();
+          td.className = 'vg-empty';
+          td.textContent = this.opts.emptyMessage;
+          tr.appendChild(td);
+          this.tbodyEl.appendChild(tr);
           return;
         }
         rows.forEach(row => {
@@ -2273,8 +1985,13 @@ class VanillaGrid<T extends Record<string, any> = Record<string, any>> {
       } else {
         const groups = result.pageGroups;
         if (groups.length === 0) {
-          this._appendEmptyRow();
-          this._updateAriaCounts(0);
+          const tr = document.createElement('tr');
+          const td = document.createElement('td');
+          td.colSpan = this._colCount();
+          td.className = 'vg-empty';
+          td.textContent = this.opts.emptyMessage;
+          tr.appendChild(td);
+          this.tbodyEl.appendChild(tr);
           return;
         }
         groups.forEach(g => {
@@ -2305,28 +2022,6 @@ class VanillaGrid<T extends Record<string, any> = Record<string, any>> {
       // After body render, update header select-all state and apply column visibility
       this._updateHeaderSelectionToggle();
       this._applyColumnVisibility();
-      // Update accessible row/col counts based on processed result
-      this._updateAriaCounts(this._countVisibleRows(result));
-    }
-
-    /** Count the number of data rows currently visible (excluding empty/group header rows). */
-    _countVisibleRows(result) {
-      if (!result) return 0;
-      if (this.opts.tree.enabled) return (result.pageFlatRows || []).length;
-      if (result.hasGroups) {
-        return (result.pageGroups || []).reduce((acc, g) => acc + (g.rows ? g.rows.length : 0), 0);
-      }
-      return (result.pageRows || []).length;
-    }
-
-    /** Set aria-rowcount and aria-colcount on the table for assistive tech. */
-    _updateAriaCounts(visibleRows) {
-      if (!this.tableEl) return;
-      try {
-        // Header row + data rows
-        this.tableEl.setAttribute('aria-rowcount', String(1 + (visibleRows | 0)));
-        this.tableEl.setAttribute('aria-colcount', String(this._colCount()));
-      } catch { /* non-fatal */ }
     }
 
     // -------- Internal: Markdown helpers --------
@@ -3899,27 +3594,10 @@ class VanillaGrid<T extends Record<string, any> = Record<string, any>> {
     }
   }
 
-// Export as default (UMD will use this as window.VanillaGrid)
-export default VanillaGrid;
-
-// Also export types for TypeScript consumers
-export type {
-  VGColumn,
-  VGExporting,
-  VGTreeOptions,
-  VGPivotConfig,
-  VGStyleControls,
-  VGColumnsMenu,
-  VGI18n,
-  VanillaGridOptions,
-  VGCellType,
-  VGSortDirection,
-  VGFilterMode,
-  VGExportFormat,
-  VGExportScope,
-  VGThemeValue,
-  VGDensityValue,
-  VGAggregation,
-  VGFilterOperator,
-  VGDropPosition
-};
+  // UMD-style export
+  if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
+    module.exports = VanillaGrid;
+  } else {
+    global.VanillaGrid = VanillaGrid;
+  }
+})(typeof window !== 'undefined' ? window : globalThis);
