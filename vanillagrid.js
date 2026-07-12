@@ -45,6 +45,7 @@
   * @property {('text'|'number'|'date'|'button'|'image')} [type]
   * @property {boolean} [sortable]
   * @property {(val:any,row?:object)=>string} [format]
+  * @property {(val:any,row?:object)=>string} [formatter] Legacy alias for `format`
   * @property {(val:any,row?:object)=>string|HTMLElement} [render]
   * @property {{ text?: string, target?: string }} [link]
   * @property {{ alt?: string, width?: number, height?: number }} [image]
@@ -174,7 +175,8 @@
             totalGroups: n => `${n} group(s)`,
           },
           group: { count: 'Count', min: 'min', max: 'max' },
-          aria: { toggleGroup: 'Toggle group', expandRow: 'Expand', collapseRow: 'Collapse' },
+          aria: { toggleGroup: 'Toggle group', expandRow: 'Expand', collapseRow: 'Collapse', clearFilter: 'Clear filter' },
+          noResults: (term) => term ? `No results for "${term}".` : 'No rows to display.',
           export: { button: 'Export', csv: 'CSV', markdown: 'Markdown', format: 'Format' }
         },
         // Tree options
@@ -283,6 +285,9 @@
         pivotControlsCollapsed: false,
       };
 
+      // Preserve the mount point so destroy() can restore it.
+      this._initialContainerHtml = this.container.innerHTML;
+
       // Root
       this.root = document.createElement('div');
       this.root.className = `vg-container ${this.opts.className}`.trim();
@@ -295,6 +300,29 @@
     }
 
   // ------------- Public API ----------------
+    /** Remove the grid and restore the container content present before mounting. */
+    destroy() {
+      if (this._typingPulseTimer) clearTimeout(this._typingPulseTimer);
+      if (this._onDocClickFilterMode) {
+        document.removeEventListener('click', this._onDocClickFilterMode);
+        this._onDocClickFilterMode = null;
+      }
+      this._detachSettingsDocHandler();
+      this.container.innerHTML = this._initialContainerHtml;
+    }
+
+    /** Alias for destroy(). */
+    dispose() { this.destroy(); }
+
+    /** Re-render after external row or option mutations. */
+    refresh() {
+      if (!this.root || !this.root.isConnected) return;
+      this._renderToolbar();
+      this._renderHeader();
+      this._renderBody();
+      this._renderPager();
+    }
+
   /** Replace all data rows and reset page. */
   setData(data) {
   this.data = Array.isArray(data) ? data.slice() : [];
@@ -309,6 +337,21 @@
 
   /** Get a shallow copy of current data. */
   getData() { return this.data.slice(); }
+
+    /** Replace columns at runtime while retaining data, filter and page state. */
+    setColumns(columns) {
+      if (!Array.isArray(columns)) return;
+      this.opts.columns = columns.slice();
+      this.columns = this.opts.columns;
+      if (this.state.sortKey && !this.columns.some(column => column.key === this.state.sortKey)) {
+        this.state.sortKey = null;
+      }
+      const validKeys = new Set(this.columns.map(column => column.key));
+      for (const key of this.state.columnWidths.keys()) {
+        if (!validKeys.has(key)) this.state.columnWidths.delete(key);
+      }
+      this.refresh();
+    }
 
   /**
    * Set grouping by a column key (or null to disable).
@@ -660,7 +703,10 @@
         <div class="vg-toolbar-row">
           ${filterable ? `
           <div class="vg-filter">
-            <input type="text" class="vg-filter-input" placeholder="${this._escAttr(i18n.filterPlaceholder)}" value="${this._escAttr(this.state.filter)}" aria-label="${this._escAttr(i18n.filterPlaceholder)}" />
+            <div class="vg-filter-input-wrap${this.state.filter ? ' has-value' : ''}">
+              <input type="text" class="vg-filter-input" placeholder="${this._escAttr(i18n.filterPlaceholder)}" value="${this._escAttr(this.state.filter)}" aria-label="${this._escAttr(i18n.filterPlaceholder)}" />
+              <button type="button" class="vg-filter-clear" aria-label="${this._escAttr(i18n.aria.clearFilter || 'Clear filter')}" title="${this._escAttr(i18n.aria.clearFilter || 'Clear filter')}" tabindex="-1">×</button>
+            </div>
             <div class="vg-filter-mode">
               <div class="vg-filter-mode-btn" aria-label="Filter mode">
                 <span class="vg-filter-mode-current">${this._esc(i18n.search[this.state.filterMode])}</span>
@@ -705,21 +751,33 @@
       // column toggles may be in toolbar depending on config
 
       if (input) {
+        const inputWrap = this.toolbarEl.querySelector('.vg-filter-input-wrap');
+        const updateClearVisibility = () => inputWrap && inputWrap.classList.toggle('has-value', !!input.value);
         input.oninput = () => {
           // Add typing animation
           input.style.transform = 'scale(1.02)';
           setTimeout(() => {
             input.style.transform = '';
           }, 100);
-          
+          updateClearVisibility();
           this._applyFilter();
+        };
+        const clearButton = this.toolbarEl.querySelector('.vg-filter-clear');
+        if (clearButton) clearButton.onclick = () => {
+          if (!input.value) return;
+          input.value = '';
+          updateClearVisibility();
+          this._applyFilter();
+          input.focus();
         };
         
         // Enhanced keyboard navigation
         input.onkeydown = (e) => {
           switch (e.key) {
             case 'Escape':
+              if (!input.value) break;
               input.value = '';
+              updateClearVisibility();
               this._applyFilter();
               break;
             case 'ArrowDown':
@@ -1955,13 +2013,7 @@
       if (this.opts.tree.enabled) {
         const rows = result.pageFlatRows || [];
         if (rows.length === 0) {
-          const tr = document.createElement('tr');
-          const td = document.createElement('td');
-          td.colSpan = this._colCount();
-          td.className = 'vg-empty';
-          td.textContent = this.opts.emptyMessage;
-          tr.appendChild(td);
-          this.tbodyEl.appendChild(tr);
+          this._appendEmptyRow();
           return;
         }
         rows.forEach(meta => {
@@ -1970,13 +2022,7 @@
       } else if (!result.hasGroups) {
         const rows = result.pageRows;
         if (rows.length === 0) {
-          const tr = document.createElement('tr');
-          const td = document.createElement('td');
-          td.colSpan = this._colCount();
-          td.className = 'vg-empty';
-          td.textContent = this.opts.emptyMessage;
-          tr.appendChild(td);
-          this.tbodyEl.appendChild(tr);
+          this._appendEmptyRow();
           return;
         }
         rows.forEach(row => {
@@ -1985,13 +2031,7 @@
       } else {
         const groups = result.pageGroups;
         if (groups.length === 0) {
-          const tr = document.createElement('tr');
-          const td = document.createElement('td');
-          td.colSpan = this._colCount();
-          td.className = 'vg-empty';
-          td.textContent = this.opts.emptyMessage;
-          tr.appendChild(td);
-          this.tbodyEl.appendChild(tr);
+          this._appendEmptyRow();
           return;
         }
         groups.forEach(g => {
@@ -2022,6 +2062,35 @@
       // After body render, update header select-all state and apply column visibility
       this._updateHeaderSelectionToggle();
       this._applyColumnVisibility();
+      this._updateAriaCounts(this._countVisibleRows(result));
+    }
+
+    _buildEmptyMessage() {
+      const term = (this.state.filter || '').trim();
+      const noResults = this.opts.i18n && this.opts.i18n.noResults;
+      if (term && typeof noResults === 'function') return noResults(term);
+      return this.opts.emptyMessage;
+    }
+
+    _appendEmptyRow() {
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = this._colCount();
+      td.className = 'vg-empty';
+      td.textContent = this._buildEmptyMessage();
+      tr.appendChild(td);
+      this.tbodyEl.appendChild(tr);
+    }
+
+    _countVisibleRows(result) {
+      if (this.opts.tree.enabled) return (result.pageFlatRows || []).length;
+      if (result.hasGroups) return (result.pageGroups || []).reduce((total, group) => total + group.rows.length, 0);
+      return (result.pageRows || []).length;
+    }
+
+    _updateAriaCounts(visibleRows) {
+      this.tableEl.setAttribute('aria-rowcount', String(1 + visibleRows));
+      this.tableEl.setAttribute('aria-colcount', String(this._colCount()));
     }
 
     // -------- Internal: Markdown helpers --------
@@ -2219,12 +2288,13 @@
 
       const type = (col.type || 'text').toLowerCase();
       const value = row[col.key];
+      const format = typeof col.format === 'function' ? col.format : col.formatter;
       const hasToggle = !!td.querySelector && !!td.querySelector('.vg-tree-toggle');
 
       switch (type) {
         case 'number': {
           const num = this._toNumber(value);
-          const content = (typeof col.format === 'function') ? col.format(num, row) : (num ?? '');
+          const content = (typeof format === 'function') ? format(num, row) : (num ?? '');
           if (hasToggle) {
             const span = document.createElement('span');
             span.textContent = content;
@@ -2334,7 +2404,7 @@
             }
           } else {
             // text (safe)
-            const txt = (typeof col.format === 'function') ? col.format(value, row) : (value ?? '');
+            const txt = (typeof format === 'function') ? format(value, row) : (value ?? '');
             if (hasToggle) {
               const span = document.createElement('span');
               span.textContent = txt;

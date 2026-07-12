@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>VanillaGrid • Live Updates</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="../vanillagrid.js"></script>
+  <link rel="stylesheet" href="../vanillagrid.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      padding: 24px;
+      background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%);
+      font-family: system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .container { max-width: 1100px; margin: 0 auto; }
+    .header {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .header h1 { margin: 0 0 8px; font-size: 28px; color: #111827; }
+    .header p { margin: 0; color: #6b7280; font-size: 16px; }
+    .back { display: inline-block; margin-bottom: 12px; color: #0ea5e9; text-decoration: none; font-weight: 500; }
+    .back:hover { text-decoration: underline; }
+
+    .controls {
+      background: white;
+      padding: 16px 20px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .btn {
+      border: 1px solid #e5e7eb;
+      background: white;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    .btn:hover { border-color: #0ea5e9; background: #f0f9ff; }
+    .btn.primary { background: #0ea5e9; color: white; border-color: #0ea5e9; }
+    .btn.primary:hover { background: #0284c7; border-color: #0284c7; }
+    .btn.danger { color: #dc2626; }
+    .btn.danger:hover { border-color: #dc2626; background: #fef2f2; }
+
+    .pulse {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #94a3b8;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    .pulse.live { background: #10b981; box-shadow: 0 0 0 0 rgba(16,185,129,0.6); animation: pulse 1.8s infinite; }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(16,185,129,0.7); }
+      70% { box-shadow: 0 0 0 8px rgba(16,185,129,0); }
+      100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+    }
+
+    .stats { display: flex; gap: 12px; flex-wrap: wrap; margin-left: auto; font-size: 13px; color: #6b7280; }
+    .stats b { color: #111827; font-weight: 600; }
+
+    .grid-wrap {
+      background: white;
+      padding: 12px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .ticker-up { color: #059669; font-weight: 600; }
+    .ticker-down { color: #dc2626; font-weight: 600; }
+    .ticker-flat { color: #6b7280; font-weight: 500; }
+
+    @media (max-width: 768px) {
+      body { padding: 16px; }
+      .header { padding: 16px; }
+      .header h1 { font-size: 22px; }
+      .stats { margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a class="back" href="./index.html">← Back to Demo Gallery</a>
+    <div class="header">
+      <h1>📈 Live Updates Demo</h1>
+      <p>Simulated stock ticker that uses the imperative grid API (<code>updateRow</code>, <code>addRow</code>, <code>deleteRow</code>) to mutate rows in place every second. Sorting, filtering and pagination keep working while data streams in.</p>
+    </div>
+
+    <div class="controls">
+      <button id="toggle" class="btn primary"><span class="pulse live" id="pulse"></span><span id="toggle-label">Pause</span></button>
+      <button id="add" class="btn">➕ Add ticker</button>
+      <button id="remove" class="btn danger">➖ Remove last</button>
+      <button id="reset" class="btn">↺ Reset</button>
+      <div class="stats">
+        <span>Tickers: <b id="stat-count">0</b></span>
+        <span>Updates: <b id="stat-updates">0</b></span>
+      </div>
+    </div>
+
+    <div class="grid-wrap">
+      <div id="grid"></div>
+    </div>
+  </div>
+
+  <script>
+    const SYMBOLS = [
+      { sym: 'ACME', name: 'Acme Corp',         price: 142.30 },
+      { sym: 'GLOB', name: 'Globex Inc.',       price:  87.55 },
+      { sym: 'INIT', name: 'Initech',           price:  64.10 },
+      { sym: 'UMBC', name: 'Umbrella Co.',      price: 211.95 },
+      { sym: 'STRK', name: 'Stark Industries',  price: 358.40 },
+      { sym: 'WAYN', name: 'Wayne Enterprises', price: 196.20 },
+      { sym: 'TYRE', name: 'Tyrell Corp.',      price:  44.85 },
+      { sym: 'CYBE', name: 'Cyberdyne Systems', price:  73.65 }
+    ];
+
+    const data = SYMBOLS.map((s, i) => ({
+      id: i + 1,
+      symbol: s.sym,
+      company: s.name,
+      price: s.price,
+      change: 0,
+      changePct: 0,
+      volume: Math.floor(50_000 + Math.random() * 950_000),
+      updated: new Date().toLocaleTimeString()
+    }));
+
+    const moneyFmt = new Intl.NumberFormat('en-US', {
+      style: 'currency', currency: 'USD'
+    });
+    const intFmt = new Intl.NumberFormat('en-US');
+
+    function renderChange(value, row) {
+      const num = Number(value || 0);
+      if (num > 0) return `<span class="ticker-up">▲ ${moneyFmt.format(num)}</span>`;
+      if (num < 0) return `<span class="ticker-down">▼ ${moneyFmt.format(Math.abs(num))}</span>`;
+      return `<span class="ticker-flat">— $0.00</span>`;
+    }
+    function renderPct(value) {
+      const num = Number(value || 0);
+      const cls = num > 0 ? 'ticker-up' : num < 0 ? 'ticker-down' : 'ticker-flat';
+      const arrow = num > 0 ? '▲' : num < 0 ? '▼' : '—';
+      return `<span class="${cls}">${arrow} ${num.toFixed(2)}%</span>`;
+    }
+
+    const grid = new VanillaGrid('#grid', {
+      data,
+      columns: [
+        { key: 'symbol',   label: 'Symbol',  sortable: true, width: 90 },
+        { key: 'company',  label: 'Company', sortable: true, width: 200 },
+        {
+          key: 'price', label: 'Price', type: 'number', sortable: true, width: 110,
+          formatter: v => moneyFmt.format(Number(v || 0))
+        },
+        {
+          key: 'change', label: 'Change',  type: 'custom', sortable: true, width: 120,
+          render: renderChange
+        },
+        {
+          key: 'changePct', label: '% Change', type: 'custom', sortable: true, width: 110,
+          render: renderPct
+        },
+        {
+          key: 'volume', label: 'Volume', type: 'number', sortable: true, width: 110,
+          formatter: v => intFmt.format(Number(v || 0))
+        },
+        { key: 'updated', label: 'Updated', sortable: true, width: 110 }
+      ],
+      filterable: true,
+      pageSize: 10,
+      striped: true
+    });
+
+    let running = true;
+    let updateCount = 0;
+    let nextId = data.length + 1;
+
+    function tick() {
+      const rows = grid.getData();
+      if (rows.length === 0) {
+        document.getElementById('stat-count').textContent = '0';
+        return;
+      }
+      // Update a random subset of rows each tick
+      const toUpdate = Math.max(1, Math.floor(rows.length / 2));
+      const seen = new Set();
+      for (let i = 0; i < toUpdate; i++) {
+        let idx;
+        do { idx = Math.floor(Math.random() * rows.length); } while (seen.has(idx));
+        seen.add(idx);
+        const row = rows[idx];
+        const movePct = (Math.random() - 0.5) * 4; // -2% .. +2%
+        const newPrice = Math.max(0.5, row.price * (1 + movePct / 100));
+        const change = +(newPrice - row.price).toFixed(2);
+        const changePct = +(((newPrice - row.price) / row.price) * 100).toFixed(2);
+        grid.updateRow(row.__vgid, {
+          price: +newPrice.toFixed(2),
+          change,
+          changePct,
+          volume: row.volume + Math.floor(Math.random() * 5000),
+          updated: new Date().toLocaleTimeString()
+        });
+        updateCount++;
+      }
+      document.getElementById('stat-updates').textContent = updateCount;
+      document.getElementById('stat-count').textContent = grid.getData().length;
+    }
+
+    let timer = setInterval(tick, 1200);
+
+    document.getElementById('toggle').addEventListener('click', () => {
+      running = !running;
+      document.getElementById('pulse').classList.toggle('live', running);
+      document.getElementById('toggle-label').textContent = running ? 'Pause' : 'Resume';
+      if (running) {
+        timer = setInterval(tick, 1200);
+      } else {
+        clearInterval(timer);
+      }
+    });
+
+    document.getElementById('add').addEventListener('click', () => {
+      const seed = ['NEXG','OMNI','VIRT','BYTE','NOVA','ZEPH','HELI','LUNA'];
+      const pick = seed[Math.floor(Math.random() * seed.length)] + Math.floor(Math.random() * 90 + 10);
+      grid.addRow({
+        id: nextId++,
+        symbol: pick,
+        company: pick + ' Holdings',
+        price: +(20 + Math.random() * 200).toFixed(2),
+        change: 0,
+        changePct: 0,
+        volume: Math.floor(50_000 + Math.random() * 950_000),
+        updated: new Date().toLocaleTimeString()
+      });
+      document.getElementById('stat-count').textContent = grid.getData().length;
+    });
+
+    document.getElementById('remove').addEventListener('click', () => {
+      const rows = grid.getData();
+      if (rows.length === 0) return;
+      grid.deleteRow(rows[rows.length - 1].__vgid);
+      document.getElementById('stat-count').textContent = grid.getData().length;
+    });
+
+    document.getElementById('reset').addEventListener('click', () => {
+      grid.setData(SYMBOLS.map((s, i) => ({
+        id: i + 1,
+        symbol: s.sym,
+        company: s.name,
+        price: s.price,
+        change: 0,
+        changePct: 0,
+        volume: Math.floor(50_000 + Math.random() * 950_000),
+        updated: new Date().toLocaleTimeString()
+      })));
+      updateCount = 0;
+      nextId = SYMBOLS.length + 1;
+      document.getElementById('stat-updates').textContent = '0';
+      document.getElementById('stat-count').textContent = grid.getData().length;
+    });
+
+    document.getElementById('stat-count').textContent = grid.getData().length;
+  </script>
+</body>
+</html>

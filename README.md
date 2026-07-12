@@ -85,6 +85,10 @@ const grid = new VanillaGrid('#el', {
 
 See `demo.html` for basic, tree, remote, Markdown, and selection examples.
 
+The demo gallery at `demo/index.html` also includes a visual code generator, frozen columns, live data updates, theme controls, and internationalization.
+
+Useful runtime methods include `setData(data)`, `setColumns(columns)`, `refresh()`, and `destroy()` (also available as `dispose()`).
+
 ## Development
 
 - Edit `vanillagrid.js`, `vanillagrid.css`, and the optional `vg-pivot-d3.*` files directly.

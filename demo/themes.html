@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>VanillaGrid • Themes & Style</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="../vanillagrid.js"></script>
+  <link rel="stylesheet" href="../vanillagrid.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      padding: 24px;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      font-family: system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    .header {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .header h1 { margin: 0 0 8px; font-size: 28px; color: #111827; }
+    .header p { margin: 0; color: #6b7280; font-size: 16px; }
+    .back { display: inline-block; margin-bottom: 12px; color: #6366f1; text-decoration: none; font-weight: 500; }
+    .back:hover { text-decoration: underline; }
+
+    .controls {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      align-items: flex-start;
+    }
+    .control-group { min-width: 200px; }
+    .control-group h4 {
+      margin: 0 0 10px;
+      font-size: 13px;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .theme-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .theme-chip {
+      border: 2px solid #e5e7eb;
+      background: white;
+      color: #111827;
+      padding: 8px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .theme-chip .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,0,0,0.1);
+    }
+    .theme-chip:hover { border-color: #6366f1; }
+    .theme-chip.active { border-color: #6366f1; background: #eef2ff; color: #4338ca; }
+
+    .toggle-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .toggle {
+      border: 2px solid #e5e7eb;
+      background: white;
+      padding: 8px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    .toggle:hover { border-color: #6366f1; }
+    .toggle.active { background: #6366f1; color: white; border-color: #6366f1; }
+
+    .grid-wrap {
+      background: white;
+      padding: 12px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .meta {
+      color: #6b7280;
+      font-size: 13px;
+      margin: 0 0 8px;
+    }
+    code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+
+    @media (max-width: 768px) {
+      body { padding: 16px; }
+      .header { padding: 16px; }
+      .header h1 { font-size: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a class="back" href="./index.html">← Back to Demo Gallery</a>
+    <div class="header">
+      <h1>🎨 Themes &amp; Style Showcase</h1>
+      <p>Try every built-in theme together with density and striped-row options. Selection is applied by recreating the grid with the matching constructor options.</p>
+    </div>
+
+    <div class="controls">
+      <div class="control-group" style="flex: 1 1 320px;">
+        <h4>Theme</h4>
+        <div class="theme-list" id="theme-list"></div>
+      </div>
+      <div class="control-group">
+        <h4>Density</h4>
+        <div class="toggle-row">
+          <button class="toggle active" data-density="comfortable">Comfortable</button>
+          <button class="toggle" data-density="compact">Compact</button>
+        </div>
+      </div>
+      <div class="control-group">
+        <h4>Rows</h4>
+        <div class="toggle-row">
+          <button class="toggle" data-striped="off">Plain</button>
+          <button class="toggle active" data-striped="on">Striped</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="meta">
+      Active configuration: <code id="config-display"></code>
+    </p>
+
+    <div class="grid-wrap">
+      <div id="grid"></div>
+    </div>
+  </div>
+
+  <script>
+    const themes = [
+      { value: 'light',     label: 'Light',     dot: '#f8fafc' },
+      { value: 'dark-blue', label: 'Dark Blue', dot: '#1e293b' },
+      { value: 'dark-grey', label: 'Dark Grey', dot: '#374151' },
+      { value: 'midnight',  label: 'Midnight',  dot: '#0f172a' },
+      { value: 'forest',    label: 'Forest',    dot: '#14532d' },
+      { value: 'ocean',     label: 'Ocean',     dot: '#0c4a6e' },
+      { value: 'sand',      label: 'Sand',      dot: '#fef3c7' }
+    ];
+
+    const data = [
+      { id: 1, country: 'Germany',       capital: 'Berlin',     population: 84_400_000, gdpUsdT: 4.5,  continent: 'Europe' },
+      { id: 2, country: 'France',        capital: 'Paris',      population: 68_400_000, gdpUsdT: 3.0,  continent: 'Europe' },
+      { id: 3, country: 'Japan',         capital: 'Tokyo',      population: 124_500_000, gdpUsdT: 4.2, continent: 'Asia' },
+      { id: 4, country: 'Brazil',        capital: 'Brasília',   population: 215_300_000, gdpUsdT: 2.1, continent: 'Americas' },
+      { id: 5, country: 'Australia',     capital: 'Canberra',   population: 26_500_000,  gdpUsdT: 1.7, continent: 'Oceania' },
+      { id: 6, country: 'Canada',        capital: 'Ottawa',     population: 40_100_000,  gdpUsdT: 2.1, continent: 'Americas' },
+      { id: 7, country: 'India',         capital: 'New Delhi',  population: 1_417_000_000, gdpUsdT: 3.7, continent: 'Asia' },
+      { id: 8, country: 'South Africa',  capital: 'Pretoria',   population: 60_400_000,  gdpUsdT: 0.4, continent: 'Africa' },
+      { id: 9, country: 'Spain',         capital: 'Madrid',     population: 48_400_000,  gdpUsdT: 1.6, continent: 'Europe' },
+      { id: 10, country: 'Mexico',       capital: 'Mexico City', population: 128_900_000, gdpUsdT: 1.8, continent: 'Americas' },
+      { id: 11, country: 'Egypt',        capital: 'Cairo',      population: 109_300_000, gdpUsdT: 0.4, continent: 'Africa' },
+      { id: 12, country: 'New Zealand',  capital: 'Wellington', population: 5_200_000,   gdpUsdT: 0.25, continent: 'Oceania' }
+    ];
+
+    const numberFmt = new Intl.NumberFormat('en-US');
+
+    const columns = [
+      { key: 'id', label: 'ID', type: 'number', sortable: true, width: 60 },
+      { key: 'country', label: 'Country', sortable: true, width: 140 },
+      { key: 'capital', label: 'Capital', sortable: true, width: 140 },
+      { key: 'continent', label: 'Continent', sortable: true, width: 110 },
+      {
+        key: 'population', label: 'Population', type: 'number', sortable: true, width: 130,
+        formatter: v => numberFmt.format(v)
+      },
+      {
+        key: 'gdpUsdT', label: 'GDP (USD T)', type: 'number', sortable: true, width: 110,
+        formatter: v => '$' + v.toFixed(2) + 'T'
+      }
+    ];
+
+    const state = {
+      theme: 'ocean',
+      density: 'comfortable',
+      striped: true
+    };
+
+    let grid = null;
+
+    function build() {
+      if (grid && typeof grid.destroy === 'function') grid.destroy();
+      grid = new VanillaGrid('#grid', {
+        data,
+        columns,
+        sortable: true,
+        filterable: true,
+        pageSize: 8,
+        theme: state.theme,
+        density: state.density,
+        striped: state.striped,
+        styleControls: false
+      });
+      document.getElementById('config-display').textContent =
+        `theme: '${state.theme}', density: '${state.density}', striped: ${state.striped}`;
+    }
+
+    // Theme chips
+    const themeListEl = document.getElementById('theme-list');
+    themes.forEach(t => {
+      const btn = document.createElement('button');
+      btn.className = 'theme-chip' + (t.value === state.theme ? ' active' : '');
+      btn.dataset.theme = t.value;
+      btn.innerHTML = `<span class="dot" style="background:${t.dot}"></span>${t.label}`;
+      btn.addEventListener('click', () => {
+        state.theme = t.value;
+        themeListEl.querySelectorAll('.theme-chip').forEach(el =>
+          el.classList.toggle('active', el.dataset.theme === state.theme));
+        build();
+      });
+      themeListEl.appendChild(btn);
+    });
+
+    document.querySelectorAll('.toggle[data-density]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.density = btn.dataset.density;
+        document.querySelectorAll('.toggle[data-density]').forEach(el =>
+          el.classList.toggle('active', el.dataset.density === state.density));
+        build();
+      });
+    });
+
+    document.querySelectorAll('.toggle[data-striped]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.striped = btn.dataset.striped === 'on';
+        document.querySelectorAll('.toggle[data-striped]').forEach(el =>
+          el.classList.toggle('active',
+            (el.dataset.striped === 'on') === state.striped));
+        build();
+      });
+    });
+
+    build();
+  </script>
+</body>
+</html>
