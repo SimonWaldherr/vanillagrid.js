@@ -194,6 +194,11 @@
   color: var(--vg-fg);
   transition: background-color .2s ease;
 }
+.vg-filter-input-wrap { position: relative; flex: 1; min-width: 0; }
+.vg-filter-input-wrap .vg-filter-input { width: 100%; padding-right: 34px; }
+.vg-filter-clear { display: none; position: absolute; top: 50%; right: 4px; transform: translateY(-50%); border: 0; background: transparent; color: var(--vg-muted); cursor: pointer; font-size: 20px; line-height: 1; padding: 2px 7px; }
+.vg-filter-input-wrap.has-value .vg-filter-clear { display: block; }
+.vg-filter-clear:hover { color: var(--vg-fg); }
 .vg-filter-input::placeholder {
   color: var(--vg-muted);
 }

@@ -2,100 +2,307 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>VanillaGrid Demos</title>
+  <title>VanillaGrid • Interactive Demos</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="../vanillagrid.css" />
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; background:#f6f7fb; margin:0; }
-    .wrap { max-width: 980px; margin: 24px auto; padding: 0 16px; }
-    .hero { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px; border-radius: 12px; margin-bottom: 24px; text-align: center; }
-    .hero h1 { margin: 0 0 8px 0; font-size: 28px; }
-    .hero p { margin: 0; opacity: 0.9; font-size: 16px; }
-    .new-badge { display: inline-block; background: #ff6b6b; color: white; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 12px; margin-left: 8px; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(240px,1fr)); gap: 16px; }
-    .card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:16px; text-decoration:none; color:#111; box-shadow: var(--vg-shadow); position: relative; transition: all 0.2s ease; }
-    .card:hover { border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,.15); }
-    .card.featured { border-color: #10b981; background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%); }
-    .card.featured:hover { border-color: #059669; box-shadow:0 0 0 3px rgba(16,185,129,.15); }
-    .card h3 { margin:0 0 6px 0; font-size:16px; }
-    .card p { margin:0; color:#6b7280; font-size:13px; }
-    .feature-icon { font-size: 20px; margin-bottom: 8px; display: block; }
-    
-    /* Mobile optimizations */
-    @media (max-width: 768px) {
-      .wrap { margin: 16px auto; padding: 0 12px; }
-      .hero { padding: 20px 16px; margin-bottom: 20px; }
-      .hero h1 { font-size: 24px; }
-      .hero p { font-size: 14px; }
-      .grid { grid-template-columns: 1fr; gap: 12px; }
-      .card { padding: 14px; }
-      .card h3 { font-size: 15px; }
-      .card p { font-size: 12px; }
-      /* Touch-friendly cards */
-      .card:active { 
-        transform: scale(0.98);
-        transition: transform 0.1s ease;
-      }
-    }
-    
-    @media (max-width: 480px) {
-      .hero h1 { font-size: 20px; }
-      .new-badge { font-size: 10px; padding: 2px 6px; }
-    }
+    :root { --ink: #172033; --muted: #667085; --line: #e5e7eb; --surface: #fff; --canvas: #f8fafc; --accent: #3158d4; --accent-dark: #253fa5; --accent-soft: #eef2ff; }
+    * { box-sizing: border-box; }
+    html, body { max-width: 100%; overflow-x: hidden; }
+    body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--canvas); margin: 0; min-height: 100vh; color: var(--ink); }
+    .site-header { height: 56px; background: #111827; color: white; display: flex; align-items: center; }
+    .site-header-inner { width: min(1260px, calc(100% - 48px)); margin: 0 auto; display: flex; align-items: center; gap: 30px; }
+    .brand { color: white; font-size: 16px; font-weight: 750; text-decoration: none; letter-spacing: -0.02em; }
+    .site-nav { display: flex; gap: 22px; }
+    .site-nav a { color: #cbd5e1; font-size: 14px; text-decoration: none; }
+    .site-nav a[aria-current="page"], .site-nav a:hover { color: white; font-weight: 650; }
+    .site-nav .github { margin-left: auto; }
+    .wrap { max-width: 1260px; margin: 0 auto; padding: 42px 24px 36px; }
+    .hero { padding: 0 0 28px; margin-bottom: 20px; border-bottom: 1px solid var(--line); text-align: left; }
+    .hero h1 { margin: 0 0 8px; font-size: clamp(30px, 4vw, 42px); letter-spacing: -0.045em; line-height: 1.08; }
+    .hero p { max-width: 680px; margin: 0 0 22px; color: var(--muted); font-size: 16px; line-height: 1.6; }
+    .hero-actions { display: flex; justify-content: flex-start; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; }
+    .hero-link { display: inline-flex; align-items: center; padding: 10px 18px; border-radius: 7px; font-size: 14px; font-weight: 650; text-decoration: none; transition: background-color 0.2s ease; border: 1px solid transparent; }
+    .hero-link.primary { background: var(--accent); color: white; }.hero-link.primary:hover { background: var(--accent-dark); }.hero-link.ghost { background: var(--surface); color: var(--accent); border-color: #c7d2fe; }.hero-link.ghost:hover { border-color: var(--accent); }
+    .hero-stats { display: flex; justify-content: flex-start; gap: 0; margin-top: 0; }.hero-stats > div { min-width: 110px; padding-right: 26px; margin-right: 26px; border-right: 1px solid var(--line); }.hero-stats > div:last-child { border: 0; }
+    .hero-stat-number { font-size: 22px; font-weight: 750; color: var(--accent); margin-bottom: 4px; }.hero-stat-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .toolbar { background: var(--surface); padding: 14px; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 1px 2px rgba(15,23,42,0.04); display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 30px; position: sticky; top: 10px; z-index: 5; }
+    .toolbar input { flex: 1 1 280px; min-width: 220px; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; font-family: inherit; }.toolbar input:focus { outline: 3px solid #c7d2fe; border-color: var(--accent); }
+    .chip-row { display: flex; gap: 8px; flex-wrap: wrap; }.chip { border: 1px solid #d0d5dd; background: var(--surface); color: #344054; padding: 7px 11px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 550; transition: all 0.2s ease; font-family: inherit; }.chip:hover { border-color: var(--accent); color: var(--accent); }.chip.active { background: var(--accent); color: white; border-color: var(--accent); }.chip .count { display: inline-block; margin-left: 6px; background: rgba(0,0,0,0.08); color: inherit; padding: 1px 7px; border-radius: 4px; font-size: 11px; font-weight: 650; }.chip.active .count { background: rgba(255,255,255,0.25); }
+    .section { margin-bottom: 30px; }.section-head { display: flex; align-items: baseline; gap: 12px; margin: 0 0 8px; }.section-head h2 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.02em; }.section-head p { margin: 0; color: var(--muted); font-size: 14px; }
+    .grid { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }.card { background: var(--surface); border: 0; border-bottom: 1px solid var(--line); padding: 16px 18px; text-decoration: none; color: var(--ink); transition: background-color 0.16s ease; display: grid; grid-template-columns: minmax(190px, 0.9fr) minmax(260px, 1.6fr) minmax(170px, 1fr) auto; align-items: center; column-gap: 18px; }.card:last-child { border-bottom: 0; }.card:hover { background: #f8faff; }.card.featured { border-left: 3px solid var(--accent); padding-left: 15px; background: #fafbff; }.card h3 { margin: 0; font-size: 15px; font-weight: 700; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }.card p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }.card-tags { display: flex; flex-wrap: wrap; gap: 5px; }.tag { display: inline-block; background: var(--accent-soft); color: #3449ae; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 550; }.new-badge { display: inline-block; background: #eab308; color: white; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; letter-spacing: 0.4px; }.row-action { color: var(--accent); font-size: 13px; font-weight: 650; white-space: nowrap; }
+    .empty-state { display: none; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 32px; text-align: center; color: var(--muted); }.empty-state.visible { display: block; }.footer { text-align: center; color: var(--muted); font-size: 13px; margin: 32px 0 0; }.footer a { color: var(--accent); }
+    @media (max-width: 768px) { .site-header-inner { width: min(100% - 32px, 1260px); }.site-nav { display: none; }.wrap, .hero, .toolbar, .section, .grid, .card { min-width: 0; max-width: 100%; }.wrap { margin: 0 auto; padding: 28px 16px; }.hero { padding-bottom: 20px; margin-bottom: 16px; }.hero p { font-size: 14px; }.hero-actions { display: grid; }.hero-link { justify-content: center; }.toolbar { padding: 12px; top: 0; border-radius: 8px; align-items: stretch; }.toolbar input, .chip-row { flex: 1 1 100%; min-width: 0; width: 100%; }.chip-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }.chip { min-width: 0; white-space: normal; }.card { grid-template-columns: 1fr; row-gap: 8px; padding: 15px; }.card.featured { padding-left: 12px; }.row-action { margin-top: 2px; }.hero-stats { gap: 0; }.hero-stats > div { min-width: 0; flex: 1; padding-right: 10px; margin-right: 10px; } }
+    @media (max-width: 480px) { .hero h1 { font-size: 28px; }.chip { padding: 6px 8px; } }
   </style>
 </head>
 <body>
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a class="brand" href="index.html">VanillaGrid</a>
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="index.html" aria-current="page">Demos</a>
+        <a href="themes.html">Themes</a>
+        <a href="https://github.com/SimonWaldherr/vanillagrid.js#readme" target="_blank" rel="noopener">Documentation</a>
+        <a class="github" href="https://github.com/SimonWaldherr/vanillagrid.js" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </div>
+  </header>
   <div class="wrap">
     <div class="hero">
-      <h1>🚀 VanillaGrid Demos</h1>
-      <p>Powerful data grid with enhanced search, filtering, pagination, and tree navigation</p>
+      <h1>VanillaGrid Demo Gallery</h1>
+      <p>A tiny dependency-free data grid for the web — explore every feature through hands-on demos.</p>
+      <div class="hero-actions">
+        <a class="hero-link primary" href="basic.html">Start with Basic Grid</a>
+        <a class="hero-link ghost" href="../demo.html">Open complete demo</a>
+      </div>
+      <div class="hero-stats">
+        <div>
+          <div class="hero-stat-number" id="stat-demos">16</div>
+          <div class="hero-stat-label">Demos</div>
+        </div>
+        <div>
+          <div class="hero-stat-number">7</div>
+          <div class="hero-stat-label">Themes</div>
+        </div>
+        <div>
+          <div class="hero-stat-number">0</div>
+          <div class="hero-stat-label">Dependencies</div>
+        </div>
+      </div>
     </div>
-    <div class="grid">
-      <a class="card" href="basic.html">
-        <h3>Enhanced Search</h3>
-        <p>Multiple search modes: Simple, Case-Sensitive, Regex, and Tree Navigation for data exploration.</p>
-      </a>
-      <a class="card" href="quick-test.html">
-        <h3>Quick Test</h3>
-        <p>Interactive test page for the new enhanced search functionality.</p>
-      </a>
-      <a class="card" href="tree.html">
-        <h3>Tree Grid</h3>
-        <p>Hierarchical rows with expand/collapse.</p>
-      </a>
-      <a class="card" href="remote.html">
-        <h3>Remote Grid</h3>
-        <p>Server-side pagination and sorting.</p>
-      </a>
-      <a class="card" href="selection-columns.html">
-        <h3>Selection + Columns</h3>
-        <p>Row selection and configurable columns menu.</p>
-      </a>
-      <a class="card" href="rich-cells.html">
-        <h3>Rich Cell Types</h3>
-        <p>Images, links, buttons, progress bars, ratings.</p>
-      </a>
-      <a class="card" href="grouping.html">
-        <h3>Grouping & Aggregation</h3>
-        <p>Group data with sum, min, max calculations.</p>
-      </a>
-      <a class="card" href="pivot.html">
-        <h3>Pivot Table</h3>
-        <p>Interactive pivot builder with drag & drop.</p>
-      </a>
-      <a class="card" href="export.html">
-        <h3>Export & Print</h3>
-        <p>CSV/Markdown export and print functionality.</p>
-      </a>
-      <a class="card" href="advanced.html">
-        <h3>Advanced Features</h3>
-        <p>Column resizing, inline editing, context menus.</p>
-      </a>
-      <a class="card" href="data-explorer.html">
-        <h3>Data Explorer</h3>
-        <p>Load CSV/JSON/XML, sort, filter, group, pivot, export.</p>
-      </a>
+
+    <div class="toolbar" role="search">
+      <input id="search" type="search" placeholder="Filter demos by name, description or tag…" aria-label="Filter demos" autocomplete="off" />
+      <div class="chip-row" id="filter-chips" role="tablist" aria-label="Filter by category"></div>
     </div>
+
+    <div id="sections"></div>
+
+    <div class="empty-state" id="empty">
+      <h3 style="margin:0 0 8px;">No matching demos</h3>
+      <p style="margin:0;">Try a different keyword or clear the category filter.</p>
+    </div>
+
+    <p class="footer">
+      Built with VanillaGrid · <a href="https://github.com/SimonWaldherr/vanillagrid.js" target="_blank" rel="noopener">github.com/SimonWaldherr/vanillagrid.js</a>
+    </p>
   </div>
+
+  <script>
+    const categories = [
+      { id: 'getting-started', label: 'Getting Started', description: 'New to VanillaGrid? Start here.' },
+      { id: 'data',            label: 'Data &amp; Visualization', description: 'Display, render and aggregate data.' },
+      { id: 'interaction',     label: 'Interaction',     description: 'Selecting, editing and reordering rows.' },
+      { id: 'advanced',        label: 'Advanced',        description: 'Server-side, pivots and dev tools.' },
+      { id: 'customization',   label: 'Customization',   description: 'Themes, layout and localization.' }
+    ];
+
+    const demos = [
+      {
+        href: 'basic.html', icon: '🚀', title: 'Basic Grid', featured: true,
+        description: 'Essential features including sorting, filtering, pagination and column management. Perfect introduction to VanillaGrid.',
+        category: 'getting-started', badge: 'START HERE',
+        tags: ['sorting', 'filtering', 'pagination', 'beginner']
+      },
+      {
+        href: 'code-generator.html', icon: '🛠️', title: 'Code Generator', featured: true,
+        description: 'Visual configuration tool with live preview. Generate production-ready HTML, JavaScript and complete examples.',
+        category: 'getting-started',
+        tags: ['playground', 'export', 'snippet']
+      },
+      {
+        href: 'quick-test.html', icon: '🧪', title: 'Quick Test',
+        description: 'Interactive testing playground for experimenting with search modes, regex patterns and filters.',
+        category: 'getting-started',
+        tags: ['playground', 'search', 'regex']
+      },
+
+      {
+        href: 'rich-cells.html', icon: '🎨', title: 'Rich Cell Types',
+        description: 'Showcase all cell types: images, ratings, progress bars, badges, links and interactive buttons.',
+        category: 'data',
+        tags: ['cells', 'badges', 'images', 'rendering']
+      },
+      {
+        href: 'tree.html', icon: '🌳', title: 'Hierarchical Tree View',
+        description: 'Organize nested data with expandable/collapsible tree structures and unlimited depth support.',
+        category: 'data',
+        tags: ['tree', 'hierarchy', 'lazy-load']
+      },
+      {
+        href: 'grouping.html', icon: '📦', title: 'Grouping & Aggregation',
+        description: 'Group data by multiple fields with sum, average, min, max calculations and expandable groups.',
+        category: 'data',
+        tags: ['groupBy', 'aggregation', 'sum', 'avg']
+      },
+      {
+        href: 'pivot.html', icon: '📊', title: 'Advanced Pivot Table', featured: true,
+        description: 'Excel-like pivot builder with drag-and-drop interface, advanced filtering and comprehensive export capabilities.',
+        category: 'data', badge: 'D3.JS',
+        tags: ['pivot', 'd3', 'aggregation']
+      },
+      {
+        href: 'live-updates.html', icon: '📈', title: 'Live Updates', featured: true,
+        description: 'Real-time stock-ticker simulation that streams updates into the grid via the imperative addRow / updateRow / deleteRow API.',
+        category: 'data', badge: 'NEW',
+        tags: ['real-time', 'streaming', 'api', 'ticker']
+      },
+      {
+        href: 'data-explorer.html', icon: '🔬', title: 'Data Explorer',
+        description: 'Load CSV/JSON/XML files, dynamically analyze data, apply transformations and export results.',
+        category: 'data',
+        tags: ['csv', 'json', 'xml', 'import']
+      },
+
+      {
+        href: 'advanced.html', icon: '⚙️', title: 'Advanced Features',
+        description: 'Column resizing, inline editing, keyboard navigation, context menus and custom cell renderers.',
+        category: 'interaction',
+        tags: ['editing', 'keyboard', 'resize', 'context-menu']
+      },
+      {
+        href: 'selection-columns.html', icon: '✅', title: 'Selection & Columns',
+        description: 'Row selection with checkboxes, multi-select support and a configurable columns menu with visibility toggle.',
+        category: 'interaction',
+        tags: ['selection', 'checkbox', 'columns-menu']
+      },
+      {
+        href: 'export.html', icon: '💾', title: 'Export & Print',
+        description: 'Export to CSV/Markdown formats with customizable formatting and browser-based print functionality.',
+        category: 'interaction',
+        tags: ['csv', 'markdown', 'print', 'export']
+      },
+
+      {
+        href: 'remote.html', icon: '🌐', title: 'Remote Data Grid',
+        description: 'Server-side pagination, sorting and filtering with async data loading and loading states.',
+        category: 'advanced',
+        tags: ['server-side', 'async', 'pagination']
+      },
+      {
+        href: 'frozen-columns.html', icon: '🧊', title: 'Frozen Columns', featured: true,
+        description: 'Pin the first N columns while the rest scroll horizontally — switch the freeze count live on a wide sales matrix.',
+        category: 'advanced', badge: 'NEW',
+        tags: ['frozen', 'sticky', 'wide-table']
+      },
+
+      {
+        href: 'themes.html', icon: '🎨', title: 'Themes & Style', featured: true,
+        description: 'Pick from all 7 built-in themes and combine them with density and striped-row options through a live switcher.',
+        category: 'customization', badge: 'NEW',
+        tags: ['themes', 'dark-mode', 'density', 'striped']
+      },
+      {
+        href: 'i18n.html', icon: '🌍', title: 'Internationalization', featured: true,
+        description: 'Translate every UI string in real time. Switch between English, German, French and Spanish bundles.',
+        category: 'customization', badge: 'NEW',
+        tags: ['i18n', 'localization', 'languages']
+      }
+    ];
+
+    document.getElementById('stat-demos').textContent = demos.length;
+
+    const sectionsEl = document.getElementById('sections');
+    const sectionsByCat = {};
+
+    categories.forEach(cat => {
+      const sec = document.createElement('section');
+      sec.className = 'section';
+      sec.dataset.category = cat.id;
+      sec.innerHTML = `
+        <div class="section-head">
+          <h2>${cat.label}</h2>
+          <p>${cat.description}</p>
+        </div>
+        <div class="grid"></div>
+      `;
+      sectionsEl.appendChild(sec);
+      sectionsByCat[cat.id] = sec.querySelector('.grid');
+    });
+
+    function escapeHtml(s) {
+      return s.replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[c]));
+    }
+
+    demos.forEach(demo => {
+      const target = sectionsByCat[demo.category];
+      if (!target) return;
+      const a = document.createElement('a');
+      a.className = 'card' + (demo.featured ? ' featured' : '');
+      a.href = demo.href;
+      a.dataset.search = (
+        demo.title + ' ' + demo.description + ' ' + demo.tags.join(' ')
+      ).toLowerCase();
+      const badge = demo.badge
+        ? ` <span class="new-badge">${escapeHtml(demo.badge)}</span>`
+        : '';
+      a.innerHTML = `
+        <h3>${escapeHtml(demo.title)}${badge}</h3>
+        <p>${escapeHtml(demo.description)}</p>
+        <div class="card-tags">
+          ${demo.tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}
+        </div>
+        <span class="row-action">Open demo</span>
+      `;
+      target.appendChild(a);
+    });
+
+    // Filter chips
+    const chipsEl = document.getElementById('filter-chips');
+    const allChip = document.createElement('button');
+    allChip.className = 'chip active';
+    allChip.dataset.filter = 'all';
+    allChip.innerHTML = `All <span class="count">${demos.length}</span>`;
+    chipsEl.appendChild(allChip);
+    categories.forEach(cat => {
+      const count = demos.filter(d => d.category === cat.id).length;
+      if (count === 0) return;
+      const btn = document.createElement('button');
+      btn.className = 'chip';
+      btn.dataset.filter = cat.id;
+      btn.innerHTML = `${cat.label} <span class="count">${count}</span>`;
+      chipsEl.appendChild(btn);
+    });
+
+    let activeFilter = 'all';
+    let activeQuery = '';
+
+    function applyFilters() {
+      let visibleTotal = 0;
+      categories.forEach(cat => {
+        const sec = sectionsEl.querySelector(`.section[data-category="${cat.id}"]`);
+        if (!sec) return;
+        const matchesCategory = activeFilter === 'all' || activeFilter === cat.id;
+        let visibleInSection = 0;
+        sec.querySelectorAll('.card').forEach(card => {
+          const matchesQuery = !activeQuery || card.dataset.search.includes(activeQuery);
+          const visible = matchesCategory && matchesQuery;
+          card.style.display = visible ? '' : 'none';
+          if (visible) visibleInSection++;
+        });
+        sec.style.display = visibleInSection === 0 ? 'none' : '';
+        visibleTotal += visibleInSection;
+      });
+      document.getElementById('empty').classList.toggle('visible', visibleTotal === 0);
+    }
+
+    chipsEl.addEventListener('click', e => {
+      const chip = e.target.closest('.chip');
+      if (!chip) return;
+      activeFilter = chip.dataset.filter;
+      chipsEl.querySelectorAll('.chip').forEach(el =>
+        el.classList.toggle('active', el === chip));
+      applyFilters();
+    });
+
+    document.getElementById('search').addEventListener('input', e => {
+      activeQuery = e.target.value.trim().toLowerCase();
+      applyFilters();
+    });
+
+    applyFilters();
+  </script>
 </body>
 </html>
